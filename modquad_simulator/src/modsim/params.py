@@ -1,0 +1,38 @@
+import numpy as np
+from math import pi
+
+# Crazyflie: physical parameters for the Crazyflie 2.0
+# % Model assumptions based on physical measurements:
+# %
+# % motor + mount + vicon marker = mass point of 3g
+# % arm length of mass point: 0.046m from center
+# % battery pack + main board are combined into cuboid (mass 18g) of
+# % dimensions:
+# %
+# %   width  = 0.03m
+# %   depth  = 0.03m
+# %   height = 0.012m
+# %
+
+m = 0.039  # weight (in kg) with cage (each is about 0.039kg)
+g = 9.81  # gravitational constant
+# inertial tensor in m^2 kg
+I = [[1.43e-5, 0, 0],
+     [0, 1.43e-5, 0],
+     [0, 0, 2.89e-5]]
+
+
+L = 0.05  # arm length in m
+
+mass = m
+
+invI = np.linalg.inv(I)
+grav = g
+arm_length = L
+cage_width = 0.115
+
+
+maxangle = 40 * pi / 180  # you can specify the maximum commanded angle here
+# FIXME the maximum force should be 4*60g
+maxF = 2.5 * m * g  # left these untouched from the nano plus
+minF = 0.0 * m * g  # left these untouched from the nano plus

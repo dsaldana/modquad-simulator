@@ -1,0 +1,36 @@
+<launch>
+
+    <arg name="model"/>
+    <arg name="sim" default="1"/>
+    <arg name="config_path"/>
+    <arg name="uri" default="radio://0/100/2M/0xE7E7E7E7E7"/>
+    <arg name="cmd_frequency" default="100"/>
+    <!--Initial location-->
+    <arg name="init_x" default="0"/>
+    <arg name="init_y" default="0"/>
+
+    <!-- Add odometry node -->
+    <group ns="$(arg model)">
+
+        <!-- Simulator -->
+        <node pkg="modquad_simulator" type="modquad_sim.py" name="modquad_sim" output="screen">
+            <param name="~robot_id" value="$(arg model)"/>
+            <param name="~init_x" value="$(arg init_x)" type="double"/>
+            <param name="~init_y" value="$(arg init_y)" type="double"/>
+        </node>
+
+
+        <!--<node pkg="mesh_visualization"-->
+      <!--type="mesh_visualization"-->
+      <!--name="mesh_visualization"-->
+      <!--output="screen"-->
+      <!--if="$(arg sim)">-->
+      <!--<param name="mesh_resource" value="package://mesh_visualization/mesh/hummingbird.mesh"/>-->
+      <!--<param name="color/r" value="0.0"/>-->
+      <!--<param name="color/g" value="0.0"/>-->
+      <!--<param name="color/b" value="1.0"/>-->
+      <!--<param name="color/a" value="0.7"/>-->
+      <!--<remap from="~input" to="odom"/>-->
+    <!--</node>-->
+    </group>
+</launch>
