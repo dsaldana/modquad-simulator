@@ -38,7 +38,7 @@
               type="mesh_visualization"
               name="mesh_visualization"
               output="screen">
-            <param name="mesh_resource" value="package://mesh_visualization/mesh/hummingbird.mesh"/>
+            <param name="mesh_resource" value="package://crazyflie_description/meshes/crazyflie2.dae"/>
 
             <remap from="~input" to="odom"/>
         </node>

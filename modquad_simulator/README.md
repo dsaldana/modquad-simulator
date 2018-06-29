@@ -1,16 +1,22 @@
+# ModQuad Simulator
 
-
-
-
-$ roslaunch modquad_simulator simulation.launch
-
-
-# install vispy numpy scipy transforms3d
+## Requirements
+* https://github.com/whoenig/crazyflie_ros
+* install vispy numpy scipy transforms3d
+```
 sudo pip install --upgrade vispy numpy scipy transforms3d
+```
+
+
+## Launching the simulator
+```
+$ roslaunch modquad_simulator simulation.launch
+```
 
 
 
-# topics
+
+## topics
 /crazy01/cmd_vel
 /crazy01/odom
 
@@ -19,5 +25,5 @@ sudo pip install --upgrade vispy numpy scipy transforms3d
 ## Visualization
 
 
-# Dependence
+## Dependence
 https://github.com/whoenig/crazyflie_ros
