@@ -20,6 +20,11 @@
         </node>
 
 
+
+        <include file="$(find crazyflie_controller)/launch/crazyflie2.launch">
+            <arg name="frame" value="$(arg model)"/>
+        </include>
+
         <!--<node pkg="mesh_visualization"-->
         <!--type="mesh_visualization"-->
         <!--name="mesh_visualization"-->
@@ -42,5 +47,9 @@
 
             <remap from="~input" to="odom"/>
         </node>
+
+
+        <!--<node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster"-->
+              <!--args="0 0 0 0 0 0 1 world $(arg model)"/>-->
     </group>
 </launch>

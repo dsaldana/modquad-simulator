@@ -2,14 +2,15 @@
 
 
 import rospy
+import tf2_ros
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from scipy.integrate import ode
 
 from modsim.attitude import attitude_controller
-from modsim.plot.drawer_vispy import Drawer
+# from modsim.plot.drawer_vispy import Drawer
 from modsim.simulation.motion import state_derivative
-from modsim.util.comm import publish_odom
+from modsim.util.comm import publish_odom, publish_transform_stamped
 from modsim.util.state import init_state, stateToQd
 from modquad_simulator.srv import Dislocation, DislocationResponse
 
@@ -59,14 +60,18 @@ def simulate():
 
     # Odom publisher
     odom_pub = rospy.Publisher('/' + robot_id + odom_topic, Odometry, queue_size=0)
+    # Transform publisher (for odometry)
+    tf_broadcaster = tf2_ros.TransformBroadcaster()
+    # tf_listener = tf2_ros.TransformListener()
+
 
     ########### Simulator ##############
     loc = [init_x, init_y, init_z]
     x = init_state(loc, 0)
 
     # Drawer
-    if viewer:
-        drawer = Drawer([stateToQd(x)], refresh_rate=50)
+    # if viewer:
+    #     drawer = Drawer([stateToQd(x)], refresh_rate=50)
 
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
@@ -78,8 +83,12 @@ def simulate():
         x[1] += dislocation_srv[1]
         dislocation_srv = (0., 0.)
 
-        ## Publish odometry
+        # Publish odometry
         publish_odom(x, odom_pub)
+        publish_transform_stamped(x, tf_broadcaster)
+        # publish_pose(x, tf_listener)
+
+
 
         # Control output
         F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), x)
@@ -103,8 +112,8 @@ def simulate():
                 x[5] = 0.
 
         # Plot
-        if viewer:
-            drawer.plot([stateToQd(x)])
+        # if viewer:
+        #     drawer.plot([stateToQd(x)])
 
 
 if __name__ == '__main__':
