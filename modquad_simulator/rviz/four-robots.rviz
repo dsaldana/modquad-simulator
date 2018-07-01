@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /cf11
+        - /Marker1
         - /Axes1
       Splitter Ratio: 0.5
     Tree Height: 946
@@ -62,10 +63,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /crazy02/mesh_visualization/robot
+      Marker Topic: /modquad02/mesh_visualization/robot
       Name: Marker
       Namespaces:
-        {}
+        /modquad02/mesh_visualization: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -153,4 +154,4 @@ Window Geometry:
     collapsed: false
   Width: 2095
   X: 457
-  Y: 115
+  Y: 85

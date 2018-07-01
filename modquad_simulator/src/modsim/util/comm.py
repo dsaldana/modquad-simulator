@@ -40,9 +40,9 @@ def publish_odom(x, pub):
 from geometry_msgs.msg import TransformStamped, Transform, Vector3, Quaternion
 
 
-def publish_transform_stamped(x, pub):
+def publish_transform_stamped(model_name, x, pub):
     ts = TransformStamped()
-    ts.child_frame_id = 'modquad01'
+    ts.child_frame_id = model_name
 
     # Header
     ts.header.stamp = rospy.Time.now()

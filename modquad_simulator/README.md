@@ -1,10 +1,10 @@
-# ModQuad Simulator
+# ModSim: ModQuad and Crazyflie Simulator
 
 ## Requirements
-* https://github.com/whoenig/crazyflie_ros
-* install vispy numpy scipy transforms3d
+* Install crazyflie_ros: https://github.com/whoenig/crazyflie_ros
+* install numpy scipy and transforms3d
 ```
-sudo pip install --upgrade vispy numpy scipy transforms3d
+sudo pip install --upgrade numpy scipy transforms3d
 ```
 
 
@@ -25,5 +25,7 @@ $ roslaunch modquad_simulator simulation.launch
 ## Visualization
 
 
-## Dependence
-https://github.com/whoenig/crazyflie_ros
+## Credits
+Part of this simulation is an adaptation of the Quadrotor Simulator by Daniel Mellinger at University of Pennsylvania.
+
+This is an open source project.

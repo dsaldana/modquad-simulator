@@ -69,10 +69,6 @@ def simulate():
     loc = [init_x, init_y, init_z]
     x = init_state(loc, 0)
 
-    # Drawer
-    # if viewer:
-    #     drawer = Drawer([stateToQd(x)], refresh_rate=50)
-
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
     while not rospy.is_shutdown():
@@ -85,10 +81,7 @@ def simulate():
 
         # Publish odometry
         publish_odom(x, odom_pub)
-        publish_transform_stamped(x, tf_broadcaster)
-        # publish_pose(x, tf_listener)
-
-
+        publish_transform_stamped(robot_id, x, tf_broadcaster)
 
         # Control output
         F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), x)
@@ -110,10 +103,6 @@ def simulate():
             # Velocity towards the floor
             if x[5] < 0:
                 x[5] = 0.
-
-        # Plot
-        # if viewer:
-        #     drawer.plot([stateToQd(x)])
 
 
 if __name__ == '__main__':
