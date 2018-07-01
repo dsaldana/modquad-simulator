@@ -1,6 +1,6 @@
 # ModSim: ModQuad and Crazyflie Simulator
 
-## Requirements
+### Requirements
 * Install crazyflie_ros: https://github.com/whoenig/crazyflie_ros
 * install numpy scipy and transforms3d
 ```
@@ -8,7 +8,7 @@ sudo pip install --upgrade numpy scipy transforms3d
 ```
 
 
-## Launching the simulator
+### Launching the simulator
 ```
 $ roslaunch modquad_simulator simulation.launch
 ```
@@ -16,9 +16,12 @@ $ roslaunch modquad_simulator simulation.launch
 
 
 
-## topics
-/crazy01/cmd_vel
-/crazy01/odom
+### available topics
+
+/modquad01/cmd_vel
+
+
+/modquad01/odom
 
 
 

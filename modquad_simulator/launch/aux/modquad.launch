@@ -1,15 +1,18 @@
 <launch>
 
     <arg name="model"/>
-    <arg name="sim" default="1"/>
     <arg name="config_path"/>
     <arg name="uri" default="radio://0/100/2M/0xE7E7E7E7E7"/>
     <arg name="cmd_frequency" default="100"/>
     <!--Initial location-->
     <arg name="init_x" default="0"/>
     <arg name="init_y" default="0"/>
+    <!--color for visualization-->
+    <arg name="color_r" default="1.0"/>
+    <arg name="color_g" default="1.0"/>
+    <arg name="color_b" default="0.0"/>
+    <arg name="color_a" default="1.0"/>
 
-    <!-- Add odometry node -->
     <group ns="$(arg model)">
 
         <!-- Simulator -->
@@ -19,41 +22,24 @@
             <param name="~init_y" value="$(arg init_y)" type="double"/>
         </node>
 
-
-
+        <!--position controller-->
         <include file="$(find crazyflie_controller)/launch/crazyflie2.launch">
             <arg name="frame" value="$(arg model)"/>
         </include>
 
-        <!--<node pkg="mesh_visualization"-->
-        <!--type="mesh_visualization"-->
-        <!--name="mesh_visualization"-->
-        <!--output="screen"-->
-        <!--if="$(arg sim)">-->
-        <!--<param name="mesh_resource" value="package://mesh_visualization/mesh/hummingbird.mesh"/>-->
-        <!--<param name="color/r" value="0.0"/>-->
-        <!--<param name="color/g" value="0.0"/>-->
-        <!--<param name="color/b" value="1.0"/>-->
-        <!--<param name="color/a" value="0.7"/>-->
-        <!--<remap from="~input" to="odom"/>-->
-        <!--</node>-->
 
-
+        <!--mesh publisher for rviz visualization-->
         <node pkg="mesh_visualization"
               type="mesh_visualization"
               name="mesh_visualization"
               output="screen">
             <param name="mesh_resource" value="package://crazyflie_description/meshes/crazyflie2.dae"/>
-
+            <param name="color/r" value="$(arg color_r)"/>
+            <param name="color/g" value="$(arg color_g)"/>
+            <param name="color/b" value="$(arg color_b)"/>
+            <param name="color/a" value="$(arg color_a)"/>
             <remap from="~input" to="odom"/>
         </node>
 
-
-        <!--<node name="pose" pkg="crazyflie_demo" type="demo1.py" output="screen">-->
-            <!--<param name="frame" value="$(arg model)" />-->
-        <!--</node>-->
-
-        <!--<node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster"-->
-              <!--args="0 0 0 0 0 0 1 world $(arg model)"/>-->
     </group>
 </launch>

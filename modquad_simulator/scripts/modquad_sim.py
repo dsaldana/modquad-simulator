@@ -48,9 +48,9 @@ def simulate():
     init_z = rospy.get_param('~init_z', 0.)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
-    cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
+    # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
 
-    viewer = rospy.get_param('~viewer', False)
+    # viewer = rospy.get_param('~viewer', False)
 
     # service for dislocate the robot
     rospy.Service('dislocate_robot', Dislocation, dislocate)
@@ -60,9 +60,8 @@ def simulate():
 
     # Odom publisher
     odom_pub = rospy.Publisher('/' + robot_id + odom_topic, Odometry, queue_size=0)
-    # Transform publisher (for odometry)
+    # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
-    # tf_listener = tf2_ros.TransformListener()
 
 
     ########### Simulator ##############
