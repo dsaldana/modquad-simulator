@@ -25,6 +25,15 @@ def goal_to_pose(x, y, z, yaw):
     return goal
 
 
+def landing():
+    prefix = 'modquad'
+    n = 5
+    land_services = [rospy.ServiceProxy('/%s0%d/land' % (prefix, i + 1), Empty) for i in range(n)]
+    for land in land_services:
+        land()
+    rospy.sleep(5)
+
+
 def circular_motion():
     rospy.init_node('circular', anonymous=True)
     n = 5
@@ -41,6 +50,8 @@ def circular_motion():
     for takeoff in takeoff_services:
         takeoff()
 
+    # shutdown
+    rospy.on_shutdown(landing)
     # Time counter
     t = 1.
     s = 100.
@@ -48,10 +59,14 @@ def circular_motion():
     while not rospy.is_shutdown():
         for i in range(n):
             theta = t / s + i * 2 * math.pi / n
-            publishers[i].publish(goal_to_pose(math.cos(theta), math.sin(theta), 1, theta + math.pi/2))
+            publishers[i].publish(goal_to_pose(math.cos(theta), math.sin(theta), 0.2*math.sin(1*theta)+1, theta + math.pi/2))
 
         t += 1
         rospy.sleep(.1)
+
+
+
+
 
 
 if __name__ == '__main__':
