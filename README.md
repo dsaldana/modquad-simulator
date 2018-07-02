@@ -14,7 +14,7 @@ $ roslaunch modquad_simulator simulation.launch
 Each robot simulates the dynamics of a quadrotor by runing the `modquad_sim` node and its pose is displayed in RViz.
 The launch file `simulation.launch` can be easily modified to change the number of quadrotors, their initial location and their color.
 
-As well as the actual crazyfly robot, the simulator receives two inputs:
+As well as the actual crazyflie robot, the simulator receives two inputs:
 * Attitude command: the topic _cmd_vel_ receives the desired thrust, roll, pitch and yaw inputs. It follows the same format as the `crazyflie_ros `package.
 * Goal: using the `crazyflie_controller`, the simulator also receives goals trhough the _goal_ topic and takeoff commands through the _takeoff_ service. 
 
