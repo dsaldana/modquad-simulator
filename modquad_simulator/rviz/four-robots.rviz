@@ -102,10 +102,10 @@ Visualization Manager:
       Value: false
     - Class: rviz/Axes
       Enabled: true
-      Length: 1
+      Length: 0.5
       Name: Axes
       Radius: 0.009999999776482582
-      Reference Frame: <Fixed Frame>
+      Reference Frame: world
       Value: true
     - Class: rviz/Group
       Displays:
@@ -226,10 +226,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5747979879379272
+      Pitch: 0.2147982269525528
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.22540383040905
+      Yaw: 3.9135522842407227
     Saved: ~
 Window Geometry:
   Displays:
@@ -247,5 +247,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1722
-  X: 487
-  Y: 66
+  X: 917
+  Y: 357
