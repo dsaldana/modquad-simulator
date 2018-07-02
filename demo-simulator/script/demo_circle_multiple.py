@@ -18,7 +18,6 @@ def goal_to_pose(x, y, z, yaw):
     goal.pose.position.y = y
     goal.pose.position.z = z
     quaternion = tf.transformations.quaternion_from_euler(0, 0, yaw)
-    print quaternion
     goal.pose.orientation.x = quaternion[0]
     goal.pose.orientation.y = quaternion[1]
     goal.pose.orientation.z = quaternion[2]
@@ -35,6 +34,7 @@ def circular_motion():
     # Goal publishers
     publishers = [rospy.Publisher('/%s0%d/goal' % (prefix, i + 1), PoseStamped, queue_size=1) for i in range(n)]
     # Takeoff service
+    rospy.loginfo("Taking off, wait a couple of seconds.")
     takeoff_services = [rospy.ServiceProxy('/%s0%d/takeoff' % (prefix, i + 1), Empty) for i in range(n)]
 
     # takeoff for all robots
@@ -48,7 +48,7 @@ def circular_motion():
     while not rospy.is_shutdown():
         for i in range(n):
             theta = t / s + i * 2 * math.pi / n
-            publishers[i].publish(goal_to_pose(math.cos(theta), math.sin(theta), 1, 0.))
+            publishers[i].publish(goal_to_pose(math.cos(theta), math.sin(theta), 1, theta + math.pi/2))
 
         t += 1
         rospy.sleep(.1)
