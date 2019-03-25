@@ -2,9 +2,20 @@
 
 ### Requirements
 * Install crazyflie_ros: https://github.com/whoenig/crazyflie_ros
-* install python packages `$ sudo pip install --upgrade numpy scipy transforms3d`
+* install python packages $ sudo pip install --upgrade numpy scipy transforms3d`
 
 
+
+
+### Installation
+Clone the package and compile it:
+```
+$ cd ~/catkin_ws/src/
+$ git clone https://github.com/dsaldana/modquad-simulator.git
+$ cd ~/catkin_ws/
+$ catkin_make
+```
+`
 
 ### Launching the simulator
 The simulator for five quadrotors is launched by
@@ -40,5 +51,5 @@ This is an open source project, most of the code is licensed under GPL v3.0.
 This simulator and is developed and maintained by [David Saldaña](http://davidsaldana.co/) at University of Pennsylvania.
 
 Part of the dynamics simulation is an adaptation of the Quadrotor Matlab Simulator by Daniel Mellinger at University of Pennsylvania.
- 
+The mesh_visualization node is written by Kartik Mohta at University of Pennsylvania.
 
