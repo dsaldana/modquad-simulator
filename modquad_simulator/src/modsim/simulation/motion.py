@@ -4,10 +4,22 @@ import numpy as np
 from modsim.util.state import stateToQd
 from math import sqrt
 
+# structure
+xx = [0, params.cage_width]
+yy = [0, 0]
+motor_roll = [[0, 0, 0, 0], [0, 0, 0, 0]]
+motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
+motor_failure = [[0, 0, 0, 0], [0, 0, 0, 0]]
 
-def crazyflie_motion_model(F, M):
-    ## Equations of motion
-    # X-configuration.
+
+def crazyflie_motion(F, M):
+    """
+    It receives a desired force and moment. The equation of motion of the crazyflie simulates the motor saturation.
+    :param F: desired total thrust, float
+    :param M: desired moments, 3 x 1 float vector
+    :return: thrust and moments after saturation
+    """
+    ## Equation of motion for X-configuration. From moments to rotor forces (power distribution)
     L = params.arm_length * sqrt(2) / 2
     A = [[0.25, -.25 / L, -.25 / L],
          [0.25, -.25 / L, .25 / L],
@@ -17,15 +29,15 @@ def crazyflie_motion_model(F, M):
     prop_thrusts = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
     # Limit the force and moments due to actuator limits
     # Motor saturation
-    # FIXME: we can simulate the pwm saturation
     prop_thrusts[prop_thrusts > params.maxF / 4] = params.maxF / 4
     prop_thrusts[prop_thrusts < params.minF / 4] = params.minF / 4
     prop_thrusts_clamped = prop_thrusts
 
+    # From prop forces to total moments
     B = [[1, 1, 1, 1],
          [-L, -L, L, L],
          [-L, L, L, -L]]
-    # Force after saturation
+    # Total Thrust after saturation
     nF = np.dot(B[0], prop_thrusts_clamped)
 
     Mxy = np.dot(B[1:], prop_thrusts_clamped)
@@ -33,6 +45,19 @@ def crazyflie_motion_model(F, M):
 
     return nF, nM
 
+
+def crazyflie_motion(F, M):
+    """
+    It receives a desired force and moment. The equation of motion of the crazyflie simulates the motor saturation.
+    :param F: desired total thrust, float
+    :param M: desired moments, 3 x 1 float vector
+    :return: thrust and moments after saturation
+    """
+
+    ## From moments to rotor forces (power distribution)
+
+    ## Total Thrust after saturation
+    pass
 
 def state_derivative(s, F, M):
     """
@@ -44,7 +69,7 @@ def state_derivative(s, F, M):
     :return: sdot: 13 x 1, derivative of state vector s
     """
 
-    F, M = crazyflie_motion_model(F, M)
+    F, M = crazyflie_motion(F, M)
 
     [xdot, ydot, zdot] = s[3:6]
     quat = s[6:10]
@@ -62,10 +87,10 @@ def state_derivative(s, F, M):
     # Angular velocity
     K_quat = 2  # this enforces the magnitude 1 constraint for the quaternion
     quaterror = 1 - (qW ** 2 + qX ** 2 + qY ** 2 + qZ ** 2)
-    qdot = (-1 / 2) * np.dot(np.array([[0, -p, -q, -r],
-                                       [p, 0, -r, q],
-                                       [q, r, 0, -p],
-                                       [r, -q, p, 0]]), [qW, qX, qY, qZ])
+    qdot = (-1. / 2) * np.dot(np.array([[0, -p, -q, -r],
+                                        [p, 0, -r, q],
+                                        [q, r, 0, -p],
+                                        [r, -q, p, 0]]), [qW, qX, qY, qZ])
     qdot += K_quat * quaterror * np.array([qW, qX, qY, qZ])
 
     #

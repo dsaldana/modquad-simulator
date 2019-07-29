@@ -2,6 +2,7 @@ import params
 from math import sin, cos
 import numpy as np
 
+
 def control_handle(qd, t):
     # The current states are:
     # qd.pos, qd.vel, qd.euler = [rollpitchyaw], qd.omega
@@ -11,11 +12,9 @@ def control_handle(qd, t):
 
     # =================== Your code goes here ================================
 
-
     I = params.I
     m = params.mass
     g = params.grav
-
 
     kp1_u, kd1_u = 10, 71
     kp2_u, kd2_u = 10, 71
@@ -24,7 +23,6 @@ def control_handle(qd, t):
     kp_fi, kd_fi = 2000, 125
     kp_theta, kd_theta = 2000, 125
     kp_yaw, kd_yaw = 1, 0.05
-
 
     r1_acc = kp1_u * (qd.pos_des[0] - qd.pos[0]) + kd1_u * (qd.vel_des[0] - qd.vel[0]) + qd.acc_des[0]
     r2_acc = kp2_u * (qd.pos_des[1] - qd.pos[1]) + kd2_u * (qd.vel_des[1] - qd.vel[1]) + qd.acc_des[1]
@@ -45,8 +43,8 @@ def control_handle(qd, t):
 
     # Moment
     u2 = np.dot(I, [kp_fi * (phi_des - qd.euler[0]) + kd_fi * (p_des - qd.omega[0]),
-              kp_theta * (theta_des - qd.euler[1]) + kd_theta * (q_des - qd.omega[1]),
-              kp_yaw * (psi_des - qd.euler[2]) + kd_yaw * (r_des - qd.omega[2])])
+                    kp_theta * (theta_des - qd.euler[1]) + kd_theta * (q_des - qd.omega[1]),
+                    kp_yaw * (psi_des - qd.euler[2]) + kd_yaw * (r_des - qd.omega[2])])
 
     M = u2
 
