@@ -9,7 +9,7 @@ xx = [0, params.cage_width]
 yy = [0, 0]
 motor_roll = [[0, 0, 0, 0], [0, 0, 0, 0]]
 motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
-motor_failure = [[0, 0, 0, 0], [0, 0, 0, 0]]
+motor_failure = [(1, 1)]  # set of tuples, (module from 0 to n-1, rotor number from 0 to 3)
 
 
 def crazyflie_motion(F, M):
@@ -20,6 +20,10 @@ def crazyflie_motion(F, M):
     :return: thrust and moments after saturation
     """
     ## Equation of motion for X-configuration. From moments to rotor forces (power distribution)
+    #         ^ X
+    #    (4)  |      (1) [L, -L]
+    #   Y<-----
+    #    (3)         (2)
     L = params.arm_length * sqrt(2) / 2
     A = [[0.25, -.25 / L, -.25 / L],
          [0.25, -.25 / L, .25 / L],
@@ -46,18 +50,57 @@ def crazyflie_motion(F, M):
     return nF, nM
 
 
-def crazyflie_motion(F, M):
+def modquad_motion(F, M):
     """
-    It receives a desired force and moment. The equation of motion of the crazyflie simulates the motor saturation.
+    This function is similar to crazyflie_motion, but it is made for modular robots. So it specifies the dynamics
+    of the modular structure. It receives a desired force and moment of a single robot.
     :param F: desired total thrust, float
     :param M: desired moments, 3 x 1 float vector
-    :return: thrust and moments after saturation
+    :return: thrust and moments for the whole structure
     """
-
     ## From moments to rotor forces (power distribution)
+    # positions of the rotors
+    #         ^ X
+    #    (4)  |      (1) [L, -L]
+    #   Y<-----
+    #    (3)         (2)
+    rx, ry = [], []
+    L = params.arm_length * sqrt(2) / 2.
 
-    ## Total Thrust after saturation
-    pass
+    for x, y in zip(xx, yy):
+        rx.append(x + L)
+        rx.append(x - L)
+        rx.append(x - L)
+        rx.append(x + L)
+        # y-axis
+        ry.append(y - L)
+        ry.append(y - L)
+        ry.append(y + L)
+        ry.append(y + L)
+
+    sign_rx = [1 if rx_i > 0 else -1 for rx_i in rx]
+    sign_ry = [1 if ry_i > 0 else -1 for ry_i in rx]
+    # n = len(xx)  # Number of modules
+    # m = 4 * n  # Number of rotors
+    A = [[0.25, sy * .25 / L, -sx * .25 / L] for sx, sy in zip(sign_rx, sign_ry)]
+
+    prop_thrusts = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
+    # Failing motors
+    for mf in motor_failure:
+        prop_thrusts[4*mf[0] + mf[1]]
+
+    # Motor saturation
+    prop_thrusts[prop_thrusts > params.maxF / 4] = params.maxF / 4
+    prop_thrusts[prop_thrusts < params.minF / 4] = params.minF / 4
+    prop_thrusts_clamped = prop_thrusts
+
+    # From prop forces to total moments. Equation (1) of the modquad paper (ICRA 18)
+    F = np.sum(prop_thrusts_clamped)
+    Mx = np.dot(ry, prop_thrusts_clamped)
+    My = np.dot(-rx, prop_thrusts_clamped)
+    # TODO Mz =
+    return F, [Mx, My, M[2]]
+
 
 def state_derivative(s, F, M):
     """

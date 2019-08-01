@@ -27,7 +27,7 @@ def goal_to_pose(x, y, z, yaw):
 
 def landing():
     prefix = 'modquad'
-    n = 5
+    n = rospy.get_param("num_robots", 1)
     land_services = [rospy.ServiceProxy('/%s0%d/land' % (prefix, i + 1), Empty) for i in range(n)]
     for land in land_services:
         land()
@@ -36,7 +36,7 @@ def landing():
 
 def circular_motion():
     rospy.init_node('circular', anonymous=True)
-    n = 5
+    n = rospy.get_param("num_robots", 1)
     # Prefix
     prefix = 'modquad'
 
@@ -63,10 +63,6 @@ def circular_motion():
 
         t += 1
         rospy.sleep(.1)
-
-
-
-
 
 
 if __name__ == '__main__':
