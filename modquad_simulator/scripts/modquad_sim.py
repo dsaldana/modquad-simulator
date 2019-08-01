@@ -41,7 +41,7 @@ def dislocate(disloc_msg):
 def simulate():
     global dislocation_srv
     rospy.init_node('modrotor_simulator', anonymous=True)
-    robot_id = rospy.get_param('~robot_id', 'crazy01')
+    robot_id = rospy.get_param('~robot_id', 'modquad01')
 
     init_x = rospy.get_param('~init_x', 0.)
     init_y = rospy.get_param('~init_y', 0.)
