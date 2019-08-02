@@ -11,6 +11,10 @@ motor_roll = [[0, 0, 0, 0], [0, 0, 0, 0]]
 motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
 motor_failure = [(1, 1)]  # set of tuples, (module from 0 to n-1, rotor number from 0 to 3)
 
+# xx = [0]
+# yy = [0]
+motor_failure = []  # set of tuples, (module from 0 to n-1, rotor number from 0 to 3)
+
 
 def crazyflie_motion(F, M):
     """
@@ -78,8 +82,11 @@ def modquad_motion(F, M):
         ry.append(y + L)
         ry.append(y + L)
 
+    rx = rx - np.average(rx)
+    ry = ry - np.average(ry)
+
     sign_rx = [1 if rx_i > 0 else -1 for rx_i in rx]
-    sign_ry = [1 if ry_i > 0 else -1 for ry_i in rx]
+    sign_ry = [1 if ry_i > 0 else -1 for ry_i in ry]
     # n = len(xx)  # Number of modules
     # m = 4 * n  # Number of rotors
     A = [[0.25, sy * .25 / L, -sx * .25 / L] for sx, sy in zip(sign_rx, sign_ry)]
@@ -87,7 +94,7 @@ def modquad_motion(F, M):
     prop_thrusts = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
     # Failing motors
     for mf in motor_failure:
-        prop_thrusts[4*mf[0] + mf[1]]
+        prop_thrusts[4 * mf[0] + mf[1]]
 
     # Motor saturation
     prop_thrusts[prop_thrusts > params.maxF / 4] = params.maxF / 4
@@ -97,7 +104,7 @@ def modquad_motion(F, M):
     # From prop forces to total moments. Equation (1) of the modquad paper (ICRA 18)
     F = np.sum(prop_thrusts_clamped)
     Mx = np.dot(ry, prop_thrusts_clamped)
-    My = np.dot(-rx, prop_thrusts_clamped)
+    My = -np.dot(rx, prop_thrusts_clamped)
     # TODO Mz =
     return F, [Mx, My, M[2]]
 
@@ -112,7 +119,11 @@ def state_derivative(s, F, M):
     :return: sdot: 13 x 1, derivative of state vector s
     """
 
-    F, M = crazyflie_motion(F, M)
+    F, M = modquad_motion(F, M)
+    # F, M = crazyflie_motion(F, M)
+
+    # if abs(F -F1)>0.001:
+    #     print 'diff'
 
     [xdot, ydot, zdot] = s[3:6]
     quat = s[6:10]
