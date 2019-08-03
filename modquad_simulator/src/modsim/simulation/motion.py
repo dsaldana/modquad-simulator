@@ -7,17 +7,37 @@ from math import sqrt
 
 class Structure:
 
-    def __init__(self):
-        self.xx = [0, params.cage_width]
-        self.yy = [0, 0]
+    def __init__(self, xx=[0], yy=[0], motor_failure=[]):
+        self.xx = xx
+        self.yy = yy
+        self.motor_failure = motor_failure  # set of tuples, (module from 0 to n-1, rotor number from 0 to 3)
         self.motor_roll = [[0, 0, 0, 0], [0, 0, 0, 0]]
         self.motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
-        self.motor_failure = [(1, 1)]  # set of tuples, (module from 0 to n-1, rotor number from 0 to 3)
 
-        # xx = [0]
-        # yy = [0]
-        self.motor_failure = []  # set of tuples, (module from 0 to n-1, rotor number from 0 to 3)
+        # TMP override
+        self.xx = [0, params.cage_width]
+        self.yy = [0, 0]
+
+        ##
         self.n = len(self.xx)  # Number of modules
+        self.xx = np.array(self.xx) - np.average(self.xx)  # x-coordinates with respect to the center of mass
+        self.yy = np.array(self.yy) - np.average(self.yy)  # y-coordinates with respect to the center of mass
+
+        # Equation (4) of the Modquad paper
+        # FIXME inertia with parallel axis theorem is not working. Temporary multiplied by zero
+        self.inertia_tensor = self.n * np.array(params.I) + 0*params.mass * np.diag([
+            np.sum(self.yy ** 2),
+            np.sum(self.xx ** 2),
+            np.sum(self.yy ** 2) + np.sum(self.xx ** 2)
+        ])
+
+        # print self.n
+        # self.inertia_tensor = self.n * np.array(params.I)
+        # self.inertia_tensor = params.I
+        self.inverse_inertia = np.linalg.inv(self.inertia_tensor)
+
+        # self.inertia_tensor = params.I
+        # self.inverse_inertia = params.invI
 
 
 structure = Structure()
@@ -61,10 +81,11 @@ def crazyflie_torquecontrol(F, M):
     return nF, nM
 
 
-def modquad_torquecontrol(F, M, s):
+def modquad_torquecontrol(F, M, s, motor_sat=False):
     """
     This function is similar to crazyflie_motion, but it is made for modular robots. So it specifies the dynamics
     of the modular structure. It receives a desired force and moment of a single robot.
+    :param motor_sat: motor saturation
     :param F: desired total thrust, float
     :param M: desired moments, 3 x 1 float vector
     :return: thrust and moments for the whole structure
@@ -89,9 +110,6 @@ def modquad_torquecontrol(F, M, s):
         ry.append(y + L)
         ry.append(y + L)
 
-    rx = rx - np.average(rx)
-    ry = ry - np.average(ry)
-
     sign_rx = [1 if rx_i > 0 else -1 for rx_i in rx]
     sign_ry = [1 if ry_i > 0 else -1 for ry_i in ry]
     # m = 4 * n  # Number of rotors
@@ -103,8 +121,9 @@ def modquad_torquecontrol(F, M, s):
         prop_thrusts[4 * mf[0] + mf[1]]
 
     # Motor saturation
-    prop_thrusts[prop_thrusts > params.maxF / 4] = params.maxF / 4
-    prop_thrusts[prop_thrusts < params.minF / 4] = params.minF / 4
+    if motor_sat:
+        prop_thrusts[prop_thrusts > params.maxF / 4] = params.maxF / 4
+        prop_thrusts[prop_thrusts < params.minF / 4] = params.minF / 4
     prop_thrusts_clamped = prop_thrusts
 
     # From prop forces to total moments. Equation (1) of the modquad paper (ICRA 18)
@@ -121,15 +140,17 @@ def state_derivative(s, sF, sM):
     Calculate the derivative of the state vector.
     :param t: time
     :param s: 13 x 1, state vector = [x, y, z, xd, yd, zd, qw, qx, qy, qz, p, q, r]
-    :param F: thrust output from controller (only used in simulation)
+    :param F: thrust input for a single robot
     :param M: 3 x 1, moments output from controller (only used in simulation)
     :return: sdot: 13 x 1, derivative of state vector s
     """
     # Control of Moments and thrust
     F, M = modquad_torquecontrol(sF, sM, structure)
+    print sM, M
+    # M = 4 * np.array(sM)
     # sF += params.mass * params.grav
     # F, M = crazyflie_torquecontrol(sF, sM)
-    print sF, F
+    # print sF, F
     # if abs(F -F1)>0.001:
     #     print 'diff'
 
@@ -138,10 +159,9 @@ def state_derivative(s, sF, sM):
     quat = s[6:10]  # orientation
     [qX, qY, qZ, qW] = quat
     bRw = quaternion_to_matrix(quat)
-    wRb = bRw.T     # Orientation in matrix form
+    wRb = bRw.T  # Orientation in matrix form
     omega = s[10:]  # angular velocity
     [p, q, r] = omega
-
 
     # Angular velocity
     K_quat = 2.  # this enforces the magnitude 1 constraint for the quaternion
@@ -155,8 +175,12 @@ def state_derivative(s, sF, sM):
 
     # Angular acceleration
     angular_acceleration = np.dot(params.invI, (M - np.cross(omega, np.dot(params.I, omega))))
+    angular_acceleration = np.dot(structure.inverse_inertia,
+                                  (M - np.cross(omega, np.dot(structure.inertia_tensor, omega))))
+    #
+
     # Acceleration
-    gravi = np.array([0, 0, params.mass * params.grav])
+    gravi = np.array([0, 0, structure.n * params.mass * params.grav])
     linear_acceleration = (np.dot(wRb, [0, 0, F]) - gravi) / params.mass
 
     ## Assemble the derivative of the state
