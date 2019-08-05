@@ -3,14 +3,13 @@ from math import sin, cos
 import numpy as np
 
 
-def control_handle(qd, t):
+def control_handle(qd):
     """
     Controller: Using these current and desired states, you have to compute the desired controls
 
     :param qd: The object qt contains the current state and the desired state:
                 * The current states are: qd.pos, qd.vel, qd.euler = [rollpitchyaw], qd.omega.
                 * The desired states are: qd.pos_des, qd.vel_des, qd.acc_des, qd.yaw_des, qd.yawdot_des
-    :param t:
     :return:
     """
     # =================== Your code goes here ================================

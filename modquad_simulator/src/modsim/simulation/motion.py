@@ -172,6 +172,6 @@ def control_output(t, s, desired_state, control_fun):
     quadrotor.yawdot_des = des_yawdot
 
     # get control outputs
-    [F, M, trpy, drpy] = control_fun(quadrotor, t)
+    [F, M, trpy, drpy] = control_fun(quadrotor)
 
     return F, M

@@ -11,8 +11,10 @@ from scipy.integrate import ode
 from modsim import params
 from modsim.attitude import attitude_controller
 # from modsim.plot.drawer_vispy import Drawer
+from modsim.controller import control_handle
 from modsim.datatype.structure import Structure
-from modsim.simulation.motion import state_derivative
+from modsim.simulation.motion import state_derivative, control_output
+from modsim.trajectory import trajectory_generator
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
 from modsim.util.state import init_state, stateToQd
@@ -72,7 +74,8 @@ def simulate():
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
+    # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
+    structure = Structure()
 
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
@@ -89,6 +92,7 @@ def simulate():
 
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
+    t = 0
     while not rospy.is_shutdown():
         rate.sleep()
 
@@ -100,11 +104,18 @@ def simulate():
         ## Publish odometry
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
+        # Trajectory
+        t += 1. / freq
 
+        desired_state = trajectory_generator(t)
+        # Position controller
+        [F, M] = control_output(t, state_vector, desired_state, control_handle)
 
+        if t > 30:
+            F, M = 0, [0, 0, 0]
 
-        # Control output
-        F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
+        # Control output based on crazyflie input
+        # F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
 
         ## Derivative of the robot dynamics
         f_dot = lambda t1, s: state_derivative(s, F, M, structure)

@@ -7,6 +7,12 @@ old_e = [0, 0, 0]
 
 
 def attitude_controller((thrust_pwm, roll_des, pitch_des, yaw_des), x):
+    """
+    Attitude controller for crazyflie, receiving pwm as input.
+    the output are forces and moments.
+    :param x:
+    :return:
+    """
     global old_e
 
     ### Force
