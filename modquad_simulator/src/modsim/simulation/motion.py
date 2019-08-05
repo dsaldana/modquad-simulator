@@ -109,13 +109,6 @@ def state_derivative(state_vector, sF, sM, structure):
     """
     # Control of Moments and thrust
     F, M = modquad_torque_control(sF, sM, structure)
-    print sM, M
-    # M = 4 * np.array(sM)
-    # sF += params.mass * params.grav
-    # F, M = crazyflie_torquecontrol(sF, sM)
-    # print sF, F
-    # if abs(F -F1)>0.001:
-    #     print 'diff'
 
     ## State of the quadrotor
     [xdot, ydot, zdot] = state_vector[3:6]  # Linear velocity

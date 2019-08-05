@@ -14,9 +14,9 @@ def init_state(pos, yaw):
     qw, qx, qy, qz = trans.euler2quat(0, 0, yaw)
 
     s[:3] = pos
-    s[3:6] = 0  # xdot, ydot, zdot
+    s[3:6] = 0.  # xdot, ydot, zdot
     s[6:10] = qx, qy, qz, qw
-    s[10:13] = 0  # p, q, r
+    s[10:13] = 0.  # p, q, r
     return s
 
 

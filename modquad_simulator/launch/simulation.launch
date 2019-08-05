@@ -18,6 +18,21 @@
 
 
 
+    <include file="$(arg launch_path)/modquad.launch">
+        <arg name="model" value="modquad02"/>
+
+        <arg name="init_x" default="0.5"/>
+        <arg name="init_y" default="0.5"/>
+
+
+        <arg name="color_r" default="0.0"/>
+        <arg name="color_g" default="1.0"/>
+        <arg name="color_b" default="0.0"/>
+    </include>
+
+
+
+
 
     <param name="num_robots" value="1" type="int"/>
     <!--Robot Visualization-->

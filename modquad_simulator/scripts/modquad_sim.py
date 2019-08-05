@@ -5,13 +5,16 @@ import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from numpy import copy
 from scipy.integrate import ode
 
+from modsim import params
 from modsim.attitude import attitude_controller
 # from modsim.plot.drawer_vispy import Drawer
 from modsim.datatype.structure import Structure
 from modsim.simulation.motion import state_derivative
-from modsim.util.comm import publish_odom, publish_transform_stamped
+from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
+    publish_transform_stamped_relative
 from modsim.util.state import init_state, stateToQd
 from modquad_simulator.srv import Dislocation, DislocationResponse
 
@@ -39,6 +42,20 @@ def dislocate(disloc_msg):
     return DislocationResponse()  # Return nothing
 
 
+def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
+    ids, xx, yy = structure.ids, structure.xx, structure.yy
+
+    # publish main robot
+    main_id = ids[0]
+    publish_odom(x, odom_publishers[main_id])
+    publish_transform_stamped(main_id, x, tf_broadcaster)
+
+    # show the other robots
+    for robot_id, structure_x, structure_y in zip(ids, xx, yy)[1:]:
+        publish_odom_relative(structure_x, structure_y, robot_id, main_id, odom_publishers[robot_id])
+        publish_transform_stamped_relative(robot_id, main_id, structure_x, structure_y, tf_broadcaster)
+
+
 def simulate():
     global dislocation_srv
     rospy.init_node('modrotor_simulator', anonymous=True)
@@ -51,25 +68,24 @@ def simulate():
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
 
-    # viewer = rospy.get_param('~viewer', False)
-
     # service for dislocate the robot
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    structure = Structure()
+    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
 
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
 
     # Odom publisher
-    odom_pub = rospy.Publisher('/' + robot_id + odom_topic, Odometry, queue_size=0)
+    odom_publishers = {id_robot: rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) for id_robot in
+                       structure.ids}
     # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
 
     ########### Simulator ##############
     loc = [init_x, init_y, init_z]
-    x = init_state(loc, 0)
+    state_vector = init_state(loc, 0)
 
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
@@ -77,34 +93,36 @@ def simulate():
         rate.sleep()
 
         ## Dislocate based on request
-        x[0] += dislocation_srv[0]
-        x[1] += dislocation_srv[1]
+        state_vector[0] += dislocation_srv[0]
+        state_vector[1] += dislocation_srv[1]
         dislocation_srv = (0., 0.)
 
         ## Publish odometry
-        publish_odom(x, odom_pub)
-        publish_transform_stamped(robot_id, x, tf_broadcaster)
+        publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
+
+
+
 
         # Control output
-        F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), x)
+        F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
 
         ## Derivative of the robot dynamics
         f_dot = lambda t1, s: state_derivative(s, F, M, structure)
 
         # Solve the differential equation of motion
         r = ode(f_dot).set_integrator('dopri5')
-        r.set_initial_value(x, 0)
+        r.set_initial_value(state_vector, 0)
         r.integrate(r.t + 1. / freq, step=True)
         if not r.successful():
             return
-        x = r.y
+        state_vector = r.y
 
         # Simulate floor
-        if x[2] < 0:
-            x[2] = 0.
+        if state_vector[2] < 0:
+            state_vector[2] = 0.
             # Velocity towards the floor
-            if x[5] < 0:
-                x[5] = 0.
+            if state_vector[5] < 0:
+                state_vector[5] = 0.
 
 
 if __name__ == '__main__':

@@ -11,8 +11,8 @@ def attitude_controller((thrust_pwm, roll_des, pitch_des, yaw_des), x):
 
     ### Force
     c1, c2, c3 = -0.6709, 0.1932, 13.0652
-    F = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
-    F = 9.81 * F / 1000.  # Force in Newtons
+    F_g = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
+    F = 9.81 * F_g / 1000.  # Force in Newtons
 
     ### Moments
     # Quaternion to angles
