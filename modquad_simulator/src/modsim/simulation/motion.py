@@ -77,27 +77,26 @@ def modquad_torque_control(F, M, s, motor_sat=False):
     # m = 4 * n  # Number of rotors
     A = [[0.25, sy * .25 / L, -sx * .25 / L] for sx, sy in zip(sign_rx, sign_ry)]
 
-    prop_thrusts = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
+    rotor_forces = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
     # Failing motors
     for mf in s.motor_failure:
-        prop_thrusts[4 * mf[0] + mf[1]] = 0.0
+        rotor_forces[4 * mf[0] + mf[1]] = 0.0
 
     # Motor saturation
     if motor_sat:
-        prop_thrusts[prop_thrusts > params.maxF / 4] = params.maxF / 4
-        prop_thrusts[prop_thrusts < params.minF / 4] = params.minF / 4
-    prop_thrusts_clamped = prop_thrusts
+        rotor_forces[rotor_forces > params.maxF / 4] = params.maxF / 4
+        rotor_forces[rotor_forces < params.minF / 4] = params.minF / 4
 
     # From prop forces to total moments. Equation (1) of the modquad paper (ICRA 18)
-    F = np.sum(prop_thrusts_clamped)
-    Mx = np.dot(ry, prop_thrusts_clamped)
-    My = -np.dot(rx, prop_thrusts_clamped)
+    F = np.sum(rotor_forces)
+    Mx = np.dot(ry, rotor_forces)
+    My = -np.dot(rx, rotor_forces)
     # TODO Mz =
 
-    return F, [Mx, My, M[2]]
+    return F, [Mx, My, M[2]], rotor_forces
 
 
-def state_derivative(state_vector, sF, sM, structure):
+def state_derivative(state_vector, F, M, structure):
     """
     Calculate the derivative of the state vector. This is the function that needs to be integrated to know the next
     state of the robot.
@@ -107,8 +106,6 @@ def state_derivative(state_vector, sF, sM, structure):
     :param M: 3 x 1, moments output from controller (only used in simulation)
     :return: sdot: 13 x 1, derivative of state vector s
     """
-    # Control of Moments and thrust
-    F, M = modquad_torque_control(sF, sM, structure)
 
     ## State of the quadrotor
     [xdot, ydot, zdot] = state_vector[3:6]  # Linear velocity

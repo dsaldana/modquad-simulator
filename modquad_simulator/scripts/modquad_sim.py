@@ -6,23 +6,29 @@ import tf2_ros
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from numpy import copy
-from scipy.integrate import ode
+from modsim.controller import control_handle
+from modsim.trajectory import circular_trajectory
+
+from modsim.simulation.motion import control_output, modquad_torque_control
 
 from modsim import params
 from modsim.attitude import attitude_controller
 # from modsim.plot.drawer_vispy import Drawer
-from modsim.controller import control_handle
+
 from modsim.datatype.structure import Structure
-from modsim.simulation.motion import state_derivative, control_output
-from modsim.trajectory import circular_trajectory
+
+
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
 from modsim.util.state import init_state, stateToQd
 from modquad_simulator.srv import Dislocation, DislocationResponse
+from modsim.simulation.ode_integrator import simulation_step
+
 
 # Control Input
 thrust_pwm, roll, pitch, yaw = 0, 0, 0, 0
 
+dislocation_srv = (0., 0.)
 
 # Control input callback
 def control_input_listener(twist_msg):
@@ -33,9 +39,6 @@ def control_input_listener(twist_msg):
     pitch = twist_msg.linear.x
     yaw = twist_msg.angular.z
     thrust_pwm = twist_msg.linear.z
-
-
-dislocation_srv = (0., 0.)
 
 
 def dislocate(disloc_msg):
@@ -58,6 +61,7 @@ def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
         publish_transform_stamped_relative(robot_id, main_id, structure_x, structure_y, tf_broadcaster)
 
 
+
 def simulate():
     global dislocation_srv
     rospy.init_node('modrotor_simulator', anonymous=True)
@@ -66,6 +70,7 @@ def simulate():
     init_x = rospy.get_param('~init_x', 0.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
+    demo_trajectory = rospy.get_param('~demo_trajectory', True)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
@@ -93,6 +98,7 @@ def simulate():
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
     t = 0
+
     while not rospy.is_shutdown():
         rate.sleep()
         t += 1. / freq
@@ -102,36 +108,20 @@ def simulate():
         state_vector[1] += dislocation_srv[1]
         dislocation_srv = (0., 0.)
 
-        ## Publish odometry
+        # Publish odometry
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
-        ##### Trajectory
-        desired_state = circular_trajectory(t % 10, 10)
-        # Position controller
-        [F, M] = control_output(t, state_vector, desired_state, control_handle)
-        # if t > 30:
-        #     F, M = 0, [0, 0, 0]
+        # Control output based on crazyflie input
+        F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
 
-        ##### Control output based on crazyflie input
-        # F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
+        if demo_trajectory:
+            F, M = control_output(t, state_vector, circular_trajectory(t % 10, 10), control_handle)
 
-        ## Derivative of the robot dynamics
-        f_dot = lambda t1, s: state_derivative(s, F, M, structure)
+        # Control of Moments and thrust
+        F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
 
-        # Solve the differential equation of motion
-        r = ode(f_dot).set_integrator('dopri5')
-        r.set_initial_value(state_vector, 0)
-        r.integrate(r.t + 1. / freq, step=True)
-        if not r.successful():
-            return
-        state_vector = r.y
-
-        # Simulate floor
-        if state_vector[2] < 0:
-            state_vector[2] = 0.
-            # Velocity towards the floor
-            if state_vector[5] < 0:
-                state_vector[5] = 0.
+        # Simulate
+        state_vector = simulation_step(structure, state_vector, F_structure, M_structure, freq)
 
 
 if __name__ == '__main__':
