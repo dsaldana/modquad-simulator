@@ -17,12 +17,12 @@ def simulation_step(structure, state_vector, F, M, freq):
     f_dot = lambda t1, s: state_derivative(s, F, M, structure)
 
     # Solve the differential equation of motion
-    r = ode(f_dot).set_integrator('dopri5')
+    r = ode(f_dot).set_integrator('dopri5', nsteps=5000)
     r.set_initial_value(state_vector, 0)
-    r.integrate(r.t + 1. / freq, step=True)
+    r.integrate(1. / freq, step=True)
     if not r.successful():
-        print 'error'
-        return
+        print 'Error trying to integrate'
+        return None
     state_vector = r.y
 
     # Simulate floor. Coordinate z in position is always greater than zero.
