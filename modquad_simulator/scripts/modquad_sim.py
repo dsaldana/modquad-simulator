@@ -121,7 +121,7 @@ def simulate():
         F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
 
         # Simulate
-        state_vector = simulation_step(structure, state_vector, F_structure, M_structure, freq)
+        state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1./freq)
 
 
 if __name__ == '__main__':

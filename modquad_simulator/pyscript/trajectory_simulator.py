@@ -24,7 +24,6 @@ def simulate(structure, trajectory_function, t_step=0.001, tmax=5, loc=[0., .0, 
     :param t_step: time step
     :param tmax: maximum time
     """
-    freq = 1. / t_step  # frequency
     state_vector = init_state(loc, 0)
     state_log = []
     forces_log = []
@@ -41,7 +40,7 @@ def simulate(structure, trajectory_function, t_step=0.001, tmax=5, loc=[0., .0, 
         forces_log.append(rotor_forces)
 
         # Simulate
-        new_state_vector = simulation_step(structure, state_vector, F_structure, M_structure, freq)
+        new_state_vector = simulation_step(structure, state_vector, F_structure, M_structure, t_step)
         if new_state_vector is None:
             break
         state_vector = new_state_vector
