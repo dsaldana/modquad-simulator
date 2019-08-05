@@ -16,10 +16,16 @@ from math import pi
 
 m = 0.039  # weight (in kg) with cage (each is about 0.039kg)
 g = 9.81  # gravitational constant
-# inertial tensor in m^2 kg
-I = [[1.43e-5, 0, 0],
-     [0, 1.43e-5, 0],
-     [0, 0, 2.89e-5]]
+# inertia tensor in m^2 kg
+# I = [[1.43e-5, 0, 0],
+#      [0, 1.43e-5, 0],
+#      [0, 0, 2.89e-5]]
+
+# Inertia from document http://groups.csail.mit.edu/robotics-center/public_papers/Landry15.pdf
+# page 39. inertia tensor in m^2 kg
+I = [[2.3951e-5, 0, 0],
+     [0, 2.3951e-5, 0],
+     [0, 0, 3.2347e-5]]
 
 
 L = 0.05  # arm length in m

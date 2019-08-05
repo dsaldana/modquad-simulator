@@ -15,8 +15,8 @@ class Structure:
         self.motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
 
         # TMP override
-        self.xx = [0, params.cage_width]
-        self.yy = [0, 0]
+        # self.xx = [0, params.cage_width]
+        # self.yy = [0, 0]
 
         ##
         self.n = len(self.xx)  # Number of modules
@@ -118,7 +118,7 @@ def modquad_torquecontrol(F, M, s, motor_sat=False):
     prop_thrusts = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
     # Failing motors
     for mf in s.motor_failure:
-        prop_thrusts[4 * mf[0] + mf[1]]
+        prop_thrusts[4 * mf[0] + mf[1]] = 0.0
 
     # Motor saturation
     if motor_sat:
