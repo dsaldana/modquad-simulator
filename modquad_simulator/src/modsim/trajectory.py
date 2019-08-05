@@ -2,20 +2,19 @@ from scipy import linalg
 from math import sin, cos, sqrt, pi
 
 
-def trajectory_generator(t):
+def circular_trajectory(t, t_max=30):
     """
     Circular trajectory.
+    :param t_max:
     :param t:
     :return:
     """
-    t_max = 30
-
     A = [[1, 0, 0, 0, 0, 0],
-         [1, t_max, (t_max) ** 2, (t_max) ** 3, (t_max) ** 4, (t_max) ** 5],
+         [1, t_max, t_max ** 2, t_max ** 3, t_max ** 4, t_max ** 5],
          [0, 1, 0, 0, 0, 0],
-         [0, 1, 2 * t_max, 3 * (t_max) ** 2, 4 * (t_max) ** 3, 5 * (t_max) ** 4],
+         [0, 1, 2 * t_max, 3 * t_max ** 2, 4 * t_max ** 3, 5 * t_max ** 4],
          [0, 0, 2, 0, 0, 0],
-         [0, 0, 2, 6 * t_max, 12 * (t_max) ** 2, 20 * (t_max) ** 3]]
+         [0, 0, 2, 6 * t_max, 12 * t_max ** 2, 20 * t_max ** 3]]
 
     b = [0, 1, 0, 0, 0, 0]
     a = linalg.solve(A, b)

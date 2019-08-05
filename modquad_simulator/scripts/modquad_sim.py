@@ -14,7 +14,7 @@ from modsim.attitude import attitude_controller
 from modsim.controller import control_handle
 from modsim.datatype.structure import Structure
 from modsim.simulation.motion import state_derivative, control_output
-from modsim.trajectory import trajectory_generator
+from modsim.trajectory import circular_trajectory
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
 from modsim.util.state import init_state, stateToQd
@@ -95,6 +95,7 @@ def simulate():
     t = 0
     while not rospy.is_shutdown():
         rate.sleep()
+        t += 1. / freq
 
         ## Dislocate based on request
         state_vector[0] += dislocation_srv[0]
@@ -104,17 +105,14 @@ def simulate():
         ## Publish odometry
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
-        # Trajectory
-        t += 1. / freq
-
-        desired_state = trajectory_generator(t)
+        ##### Trajectory
+        desired_state = circular_trajectory(t % 10, 10)
         # Position controller
         [F, M] = control_output(t, state_vector, desired_state, control_handle)
+        # if t > 30:
+        #     F, M = 0, [0, 0, 0]
 
-        if t > 30:
-            F, M = 0, [0, 0, 0]
-
-        # Control output based on crazyflie input
+        ##### Control output based on crazyflie input
         # F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
 
         ## Derivative of the robot dynamics
