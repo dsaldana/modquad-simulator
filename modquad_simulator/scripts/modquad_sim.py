@@ -19,7 +19,7 @@ thrust_pwm, roll, pitch, yaw = 0, 0, 0, 0
 
 
 # Control input callback
-def control_input_listenener(twist_msg):
+def control_input_listener(twist_msg):
     global thrust_pwm, roll, pitch, yaw
     # For more info, check:
     # https://github.com/whoenig/crazyflie_ros
@@ -56,7 +56,7 @@ def simulate():
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # Subscribe to control input
-    rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listenener)
+    rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
 
     # Odom publisher
     odom_pub = rospy.Publisher('/' + robot_id + odom_topic, Odometry, queue_size=0)
