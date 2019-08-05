@@ -9,6 +9,7 @@ from scipy.integrate import ode
 
 from modsim.attitude import attitude_controller
 # from modsim.plot.drawer_vispy import Drawer
+from modsim.datatype.structure import Structure
 from modsim.simulation.motion import state_derivative
 from modsim.util.comm import publish_odom, publish_transform_stamped
 from modsim.util.state import init_state, stateToQd
@@ -55,6 +56,9 @@ def simulate():
     # service for dislocate the robot
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
+    # TODO read structure and create a service to change it.
+    structure = Structure()
+
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
 
@@ -62,7 +66,6 @@ def simulate():
     odom_pub = rospy.Publisher('/' + robot_id + odom_topic, Odometry, queue_size=0)
     # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
-
 
     ########### Simulator ##############
     loc = [init_x, init_y, init_z]
@@ -73,20 +76,20 @@ def simulate():
     while not rospy.is_shutdown():
         rate.sleep()
 
-        # Dislocate based on request
+        ## Dislocate based on request
         x[0] += dislocation_srv[0]
         x[1] += dislocation_srv[1]
         dislocation_srv = (0., 0.)
 
-        # Publish odometry
+        ## Publish odometry
         publish_odom(x, odom_pub)
         publish_transform_stamped(robot_id, x, tf_broadcaster)
 
         # Control output
         F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), x)
 
-        # Derivative of the robot dynamics
-        f_dot = lambda t1, s: state_derivative(s, F, M)
+        ## Derivative of the robot dynamics
+        f_dot = lambda t1, s: state_derivative(s, F, M, structure)
 
         # Solve the differential equation of motion
         r = ode(f_dot).set_integrator('dopri5')

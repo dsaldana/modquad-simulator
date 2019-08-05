@@ -4,15 +4,17 @@ import numpy as np
 
 
 def control_handle(qd, t):
-    # The current states are:
-    # qd.pos, qd.vel, qd.euler = [rollpitchyaw], qd.omega
-    # The desired states are:
-    # qd.pos_des, qd.vel_des, qd.acc_des, qd.yaw_des, qd.yawdot_des
-    # Using these current and desired states, you have to compute the desired controls
+    """
+    Controller: Using these current and desired states, you have to compute the desired controls
 
+    :param qd: The object qt contains the current state and the desired state:
+                * The current states are: qd.pos, qd.vel, qd.euler = [rollpitchyaw], qd.omega.
+                * The desired states are: qd.pos_des, qd.vel_des, qd.acc_des, qd.yaw_des, qd.yawdot_des
+    :param t:
+    :return:
+    """
     # =================== Your code goes here ================================
 
-    I = params.I
     m = params.mass
     g = params.grav
 
@@ -42,9 +44,9 @@ def control_handle(qd, t):
     F = u1
 
     # Moment
-    u2 = np.dot(I, [kp_fi * (phi_des - qd.euler[0]) + kd_fi * (p_des - qd.omega[0]),
-                    kp_theta * (theta_des - qd.euler[1]) + kd_theta * (q_des - qd.omega[1]),
-                    kp_yaw * (psi_des - qd.euler[2]) + kd_yaw * (r_des - qd.omega[2])])
+    u2 = np.dot(params.I, [kp_fi * (phi_des - qd.euler[0]) + kd_fi * (p_des - qd.omega[0]),
+                           kp_theta * (theta_des - qd.euler[1]) + kd_theta * (q_des - qd.omega[1]),
+                           kp_yaw * (psi_des - qd.euler[2]) + kd_yaw * (r_des - qd.omega[2])])
 
     M = u2
 

@@ -2,8 +2,7 @@ from scipy import linalg
 from math import sin, cos, sqrt, pi
 
 
-
-def trajhandle(t):
+def trajectory_generator(t):
     """
     Circular trajectory.
     :param t:
