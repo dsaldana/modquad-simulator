@@ -70,7 +70,7 @@ def simulate():
     init_x = rospy.get_param('~init_x', 0.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
-    demo_trajectory = rospy.get_param('~demo_trajectory', True)
+    demo_trajectory = rospy.get_param('~demo_trajectory', False)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
@@ -80,7 +80,7 @@ def simulate():
 
     # TODO read structure and create a service to change it.
     # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
-    structure = Structure()
+    structure = Structure(ids=[robot_id])
 
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
