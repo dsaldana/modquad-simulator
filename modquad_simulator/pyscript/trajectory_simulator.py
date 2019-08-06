@@ -16,7 +16,7 @@ from modsim.datatype.structure import Structure
 import matplotlib.pyplot as plt
 
 
-def simulate(structure, trajectory_function, t_step=0.001, tmax=5, loc=[0., .0, .0]):
+def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, .0]):
     """
 
     :param structure:
@@ -46,19 +46,24 @@ def simulate(structure, trajectory_function, t_step=0.001, tmax=5, loc=[0., .0, 
         state_vector = new_state_vector
         state_log.append(np.copy(state_vector))
 
-    print "end simulation"
+    # print "end simulation"
     state_log = np.array(state_log)
     # Show trajectory x-y
     plt.plot(state_log[:, 0], state_log[:, 1])
     plt.show()
 
     # sum of the squared forces
-    plt.plot(np.sum(np.array(forces_log)**2, axis=1))
+    plt.plot(np.sum(np.array(forces_log) ** 2, axis=1))
     plt.show()
+
+    print "total integral=", np.sum(np.array(forces_log) ** 2) * t_step
 
 
 if __name__ == '__main__':
-    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
+    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[(0, 0)])
+
+    # w = params.cage_width
+    # structure = Structure(ids=['1', '2', '3', '4'], xx=[0., 0., -w, -w], yy=[0., -w, -w, 0.])
     structure = Structure()
     trajectory_function = circular_trajectory
 
