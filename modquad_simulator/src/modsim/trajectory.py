@@ -1,6 +1,15 @@
 from scipy import linalg
 from math import sin, cos, sqrt, pi
 
+class traj_data:
+    def __init__(self, times, dists, totaldist, waypts, cx, cy, cz):
+        self.times     = times
+        self.dists     = dists
+        self.totaldist = totaldist
+        self.waypts    = waypts
+        self.cx        = cx
+        self.cy        = cy
+        self.cz        = cz
 
 def circular_trajectory(t, t_max=30):
     """
@@ -32,3 +41,131 @@ def circular_trajectory(t, t_max=30):
     yaw = 0
     yawdot = 0
     return [pos, vel, acc, yaw, yawdot]
+
+#def simple_waypt_trajectory(waypts, t, t_max=30):
+#    """
+#    NOTE: THIS IS EXTREMELY SIMPLE AND NONOPTIMAL
+#    t is current time
+#    t_max is target time to complete trajectory
+#    waypoints is numpy matrix of shape [n, 3], where n is # waypts
+#    """
+#    if len(waypts) < 2):
+#        raise ValueError("Not enough waypoints")
+#
+#    # Find distances between waypts
+#    dists = np.sqrt(np.sum(((np.roll(waypts, 1, axis=0) - waypts)[1:, :])**2, axis=1))
+#    totaldist = np.sum(dists)
+#
+#    # Target times for each leg of journey
+#    times = [dists(i)/totaldist*t_max for i in range(0, len(dists))]
+#    
+#    if t == 0:
+#        pos = waypts[0, :]
+#        vel = [0,0,0]
+#        acc = [0,0,0]
+#    else:
+#        ind = [i for i in times[:-1] if t < times[i+1] and t >= times[i]]
+#        assert len(ind) == 1
+#        ind = ind[0]
+#        last_waypt = waypts[ind  , :]
+#        next_waypt = waypts[ind+1, :]
+#        last_time = times[ind]
+#        next_time = times[ind + 1]
+#        percent_complete = (t - last_time) / (next_time - last_time)
+#        pos = last_waypt + percent_complete * next_waypt
+#        vel = (next_waypt - last_waypt) / (next_time - last_time)
+#        acc = [0,0,0]
+#
+#    yaw = 0
+#    yawdot = 0
+#    return [pos, vel, acc, yaw, yawdot]
+#
+#def _min_snap_init(waypts, t_max=30):
+#    # Find distances between waypts
+#    dists = np.sqrt(np.sum(((np.roll(waypts, 1, axis=0) - waypts)[1:, :])**2, axis=1))
+#    totaldist = np.sum(dists)
+#
+#    # Target times for each waypt
+#    times = [0] + [dists(i)/totaldist*t_max for i in range(0, len(dists))]
+#    
+#    num_eq = len(waypts) - 1
+#    num_unknown = num_eq * 8
+#    M = np.zeros(num_unknown)
+#    x = np.zeros((num_unknown, 1)
+#    y = np.zeros((num_unknown, 1)
+#    z = np.zeros((num_unknown, 1)
+#    rows = np.arange([1,2,3,4]) # First waypoint modifies these rows
+#    cols = np.arange([1,2,3,4,5,6,7,8]) # and these columns
+#    for i in range(0, len(waypts)):
+#        T = times(i)
+#        if i == 0 or i == len(waypts)-1:
+#            if i == len(waypts) - 1:
+#                rows = rows[1:4]
+#            A = [ # Used for begin/end of trajectory
+#                    [     T**7,     T**6,    T**5,    T**4,   T**3,   T**2, T**1, T**0 ] 
+#                    [   7*T**6,   6*T**5,  5*T**4,  4*T**3, 3*T**2, 2*T   , 1   , 0    ] 
+#                    [  42*T**5,  30*T**4, 20*T**3, 12*T**2, 6*T   , 2     , 0   , 0    ] 
+#                    [ 210*T**4, 120*T**3, 60*T**2, 24*T   , 6     , 0     , 0   , 0    ] 
+#                ]
+#            M[rows, cols] = A
+#            # x, y, z are all single columns
+#            x[rows] = np.transpose(np.array([waypts[i,1], 0, 0, 0]))
+#            y[rows] = np.transpose(np.array([waypts[i,2], 0, 0, 0]))
+#            z[rows] = np.transpose(np.array([waypts[i,3], 0, 0, 0]))
+#            rows = np.arange(rows[-1] + 1, rows[-1] + 8)
+#        else:
+#            r1 = rows[0:6]
+#            c1 = cols
+#            r2 = rows[1:]
+#            c2 = cols + np.arange(1,9)
+#            A = [ # Used for intermediate points
+#                    [     T**7,     T**6,     T**5,    T**4,   T**3,   T**2, T**1, 1   ]
+#                    [   7*T**6,   6*T**5,   5*T**4,  4*T**3, 3*T**2, 2*T   , 1   , 0   ]
+#                    [  42*T**5,  30*T**4,  20*T**3, 12*T**2, 6*T   , 2     , 0   , 0   ]
+#                    [ 210*T**4, 120*T**3,  60*T**2, 24*T   , 6     , 0     , 0   , 0   ]
+#                    [ 840*T**3, 360*T**2, 120*T   , 24     , 0     , 0     , 0   , 0   ]
+#                    [2520*T**2, 720*T   , 120     , 0      , 0     , 0     , 0   , 0   ]
+#                    [5040*T   , 720     , 0       , 0      , 0     , 0     , 0   , 0   ]
+#                ]
+#            M[r1, c1] = A
+#            m2 = -A[1:, :]
+#            pvec = A[0, :]
+#            M[r2, c2] = np.vstack(m2, pvec)
+#            rows = rows + np.arange(1, 9)
+#            cols = c2
+#    # Solve for the equation coeffs
+#    cx = np.linalg.solve(M, x)
+#    cy = np.linalg.solve(M, y)
+#    cz = np.linalg.solve(M, z)
+#    return traj_data(times, dists, totaldist, waypts, cx, cy, cz)
+#
+#def min_snap_trajectory(t, t_max=30, traj_vars=None, waypts=[]):
+#    if len(waypts) < 2):
+#        raise ValueError("Not enough waypoints")
+#    if waypts: # i.e. waypts passed in, then initialize
+#        traj_vars = _min_snap_init(waypts, t_max)
+#        return traj_vars
+#    # find where we are in the trajectory
+#    if traj_vars is None:
+#        raise ValueError("No trajectory data passed in")
+#    ind = [i for i in traj_vars.times if t >= times(i) and t < times(i+1)]
+#    if len(ind) != 1:
+#        raise ValueError("Malformed times vector for legs of journey")
+#    ind = ind[0]
+#    prev = traj_vars.waypts[ind, :]
+#    dest = traj_vars.waypts[ind+1, :]
+#    pdiff = dest - prev
+#    leglen = np.sqrt(np.sum(pdiff * pdiff))
+#    tphase = (leglen / traj_vars.total_dist) * t_max
+#    tdiff = t # tbegin is at t=0
+#    cind = ind * 8
+#    cind = range(cind-7, cind+1) # array from [cind-7 : cind]
+#    A = [
+#            [     T**7,     T**6,    T**5,    T**4,   T**3,   T**2, T**1, T**0 ] 
+#            [   7*T**6,   6*T**5,  5*T**4,  4*T**3, 3*T**2, 2*T   , 1   , 0    ] 
+#            [  42*T**5,  30*T**4, 20*T**3, 12*T**2, 6*T   , 2     , 0   , 0    ] 
+#        ]
+#    res = A * np.stack([cx[cind], cy[cind], cz[cind]], axis=1)
+#    pos = res[1,:]
+#    vel = res[2,:]
+#    acc = res[3,:]
