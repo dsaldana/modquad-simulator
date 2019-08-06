@@ -80,7 +80,8 @@ def modquad_torque_control(F, M, s, motor_sat=False):
     rotor_forces = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
     # Failing motors
     for mf in s.motor_failure:
-        rotor_forces[4 * mf[0] + mf[1]] = 0.0
+        # rotor_forces[4 * mf[0] + mf[1]] = 0.0
+        rotor_forces[4 * mf[0] + mf[1]] *= 0.9
 
     # Motor saturation
     if motor_sat:

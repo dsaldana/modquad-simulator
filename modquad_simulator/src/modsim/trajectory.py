@@ -24,7 +24,7 @@ def circular_trajectory(t, t_max=30):
     qa = 2 * a[2] + 6 * a[3] * t + 12 * a[4] * t ** 2 + 20 * a[5] * t ** 3
 
     r = 1.  # radius of the circle
-    pos = [r * cos(2 * pi * q), r * sin(2 * pi * q), 2.5 * q +1]
+    pos = [r * cos(2 * pi * q), r * sin(2 * pi * q), 2.5 * q + .2]
     vel = [-r * 2 * pi * sin(2 * pi * q) * qv, r * 2 * pi * cos(2 * pi * q) * qv, 2.5 * qv]
     acc = [r * (-2 * pi * sin(2 * pi * q) * qa - 4 * pi ** 2 * cos(2 * pi * q) * qv ** 2),
            r * (2 * pi * cos(2 * pi * q) * qa - 4 * pi ** 2 * sin(2 * pi * q) * qv ** 2), 2.5 * qa]
