@@ -56,9 +56,14 @@ def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, 
     plt.plot(np.sum(np.array(forces_log) ** 2, axis=1))
     plt.show()
 
+    print "total integral=", np.sum(np.array(forces_log) ** 2) * t_step
+
 
 if __name__ == '__main__':
-    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0], motor_failure=[])
+    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[])
+
+    # w = params.cage_width
+    # structure = Structure(ids=['1', '2', '3', '4'], xx=[0., 0., -w, -w], yy=[0., -w, -w, 0.])
     # structure = Structure()
     trajectory_function = circular_trajectory
 
