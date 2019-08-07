@@ -46,7 +46,7 @@ def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, 
         state_vector = new_state_vector
         state_log.append(np.copy(state_vector))
 
-    # print "end simulation"
+    print "end simulation"
     state_log = np.array(state_log)
     # Show trajectory x-y
     plt.plot(state_log[:, 0], state_log[:, 1])
@@ -60,11 +60,11 @@ def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, 
 
 
 if __name__ == '__main__':
-    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[(0, 0)])
+    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[])
 
     # w = params.cage_width
     # structure = Structure(ids=['1', '2', '3', '4'], xx=[0., 0., -w, -w], yy=[0., -w, -w, 0.])
-    structure = Structure()
+    # structure = Structure()
     trajectory_function = circular_trajectory
 
     simulate(structure, trajectory_function)

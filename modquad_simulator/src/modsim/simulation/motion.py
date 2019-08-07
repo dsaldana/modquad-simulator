@@ -43,7 +43,7 @@ def crazyflie_torquecontrol(F, M):
     return nF, nM
 
 
-def modquad_torque_control(F, M, s, motor_sat=False):
+def modquad_torque_control(F, M, structure, motor_sat=False):
     """
     This function is similar to crazyflie_motion, but it is made for modular robots. So it specifies the dynamics
     of the modular structure. It receives a desired force and moment of a single robot.
@@ -61,7 +61,7 @@ def modquad_torque_control(F, M, s, motor_sat=False):
     rx, ry = [], []
     L = params.arm_length * sqrt(2) / 2.
 
-    for x, y in zip(s.xx, s.yy):
+    for x, y in zip(structure.xx, structure.yy):
         rx.append(x + L)
         rx.append(x - L)
         rx.append(x - L)
@@ -79,8 +79,9 @@ def modquad_torque_control(F, M, s, motor_sat=False):
 
     rotor_forces = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
     # Failing motors
-    for mf in s.motor_failure:
-        rotor_forces[4 * mf[0] + mf[1]] = 0.0
+    for mf in structure.motor_failure:
+        # rotor_forces[4 * mf[0] + mf[1]] = 0.0
+        rotor_forces[4 * mf[0] + mf[1]] *= 0.9
 
     # Motor saturation
     if motor_sat:
@@ -91,9 +92,10 @@ def modquad_torque_control(F, M, s, motor_sat=False):
     F = np.sum(rotor_forces)
     Mx = np.dot(ry, rotor_forces)
     My = -np.dot(rx, rotor_forces)
-    # TODO Mz =
+    # TODO Mz
+    Mz = M[2]
 
-    return F, [Mx, My, M[2]], rotor_forces
+    return F, [Mx, My, Mz], rotor_forces
 
 
 def state_derivative(state_vector, F, M, structure):
@@ -115,7 +117,7 @@ def state_derivative(state_vector, F, M, structure):
     wRb = bRw.T  # Orientation in matrix form
     omega = state_vector[10:]  # angular velocity
     [p, q, r] = omega
-
+    # print r
     # Angular velocity
     K_quat = 2.  # this enforces the magnitude 1 constraint for the quaternion
     quat_error = 1 - (qW ** 2 + qX ** 2 + qY ** 2 + qZ ** 2)  # Quaternion error
@@ -127,11 +129,12 @@ def state_derivative(state_vector, F, M, structure):
     qdot = [qdot[1], qdot[2], qdot[3], qdot[0]]  # reorder the quaternion based on the ROS quaternion representation.
 
     # Angular acceleration
-    angular_acceleration = np.dot(params.invI, (M - np.cross(omega, np.dot(params.I, omega))))
+    # angular_acceleration = np.dot(params.invI, (M - np.cross(omega, np.dot(params.I, omega))))  # For a ingle robot
     angular_acceleration = np.dot(structure.inverse_inertia,
                                   (M - np.cross(omega, np.dot(structure.inertia_tensor, omega))))
     #
-
+    # angular_acceleration [2]  = 0.  ## FIXME unknown acceleration in the z-axis
+    # angular_acceleration[1] = 0.
     # Acceleration
     gravi = np.array([0, 0, structure.n * params.mass * params.grav])
     linear_acceleration = (np.dot(wRb, [0, 0, F]) - gravi) / params.mass

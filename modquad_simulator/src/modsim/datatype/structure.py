@@ -33,10 +33,6 @@ class Structure:
             np.sum(self.yy ** 2) + np.sum(self.xx ** 2)
         ])
 
-        # print self.n
-        # self.inertia_tensor = self.n * np.array(params.I)
-        # self.inertia_tensor = params.I
+        # self.inertia_tensor = np.array(params.I)
         self.inverse_inertia = np.linalg.inv(self.inertia_tensor)
 
-        # self.inertia_tensor = params.I
-        # self.inverse_inertia = params.invI

@@ -69,7 +69,7 @@ def simulate():
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id = rospy.get_param('~robot_id', 'modquad01')
 
-    init_x = rospy.get_param('~init_x', 0.)
+    init_x = rospy.get_param('~init_x', 1.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
     demo_trajectory = rospy.get_param('~demo_trajectory', True)
@@ -81,7 +81,7 @@ def simulate():
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
+    # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[])
     structure = Structure(ids=[robot_id], xx=[0], yy=[0])
 
     # Subscribe to control input
@@ -136,8 +136,8 @@ def simulate():
         F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
 
         # Simulate
-        state_vector = simulation_step(structure, state_vector, 
-                F_structure, M_structure, 1./freq)
+        state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1./freq)
+        # state_vector[-1] = 0.01-state_vector[-1]
 
 if __name__ == '__main__':
     simulate()
