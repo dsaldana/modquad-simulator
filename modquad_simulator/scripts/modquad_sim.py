@@ -5,9 +5,11 @@ import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+import numpy as np
 from numpy import copy
 from modsim.controller import control_handle
-from modsim.trajectory import circular_trajectory
+from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, \
+        min_snap_trajectory
 
 from modsim.simulation.motion import control_output, modquad_torque_control
 
@@ -70,7 +72,7 @@ def simulate():
     init_x = rospy.get_param('~init_x', 0.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
-    demo_trajectory = rospy.get_param('~demo_trajectory', False)
+    demo_trajectory = rospy.get_param('~demo_trajectory', True)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
@@ -80,7 +82,7 @@ def simulate():
 
     # TODO read structure and create a service to change it.
     # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
-    structure = Structure(ids=[robot_id])
+    structure = Structure(ids=[robot_id], xx=[0], yy=[0])
 
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
@@ -98,7 +100,14 @@ def simulate():
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
     t = 0
+    waypts = np.array([ [0,0,0],
+                        [0,0.5,0],
+                        [0.5,0.5,0],
+                        [0.5,0,0],
+                        [0,0,0]])
+                        
 
+    traj_vars = min_snap_trajectory(0, 10, None, waypts)
     while not rospy.is_shutdown():
         rate.sleep()
         t += 1. / freq
@@ -114,15 +123,21 @@ def simulate():
         # Control output based on crazyflie input
         F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
 
+        
         if demo_trajectory:
-            F, M = control_output(t, state_vector, circular_trajectory(t % 10, 10), control_handle)
+            F, M = control_output(t, state_vector, 
+                    min_snap_trajectory(t % 10, 30, traj_vars), control_handle)
+            #F, M = control_output(t, state_vector, 
+            #        simple_waypt_trajectory(waypts, t % 10, 30), control_handle)
+            #F, M = control_output(t, state_vector, 
+            #        circular_trajectory(t % 10, 10), control_handle)
 
         # Control of Moments and thrust
         F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
 
         # Simulate
-        state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1./freq)
-
+        state_vector = simulation_step(structure, state_vector, 
+                F_structure, M_structure, 1./freq)
 
 if __name__ == '__main__':
     simulate()

@@ -7,8 +7,8 @@
     <include file="$(arg launch_path)/modquad.launch">
         <arg name="model" value="modquad01"/>
 
-        <arg name="init_x" default="0.5"/>
-        <arg name="init_y" default="0.5"/>
+        <arg name="init_x" default="0.0"/>
+        <arg name="init_y" default="0.0"/>
 
 
         <arg name="color_r" default="1.0"/>
