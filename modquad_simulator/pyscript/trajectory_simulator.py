@@ -16,7 +16,7 @@ from modsim.datatype.structure import Structure
 import matplotlib.pyplot as plt
 
 
-def simulate(structure, trajectory_function, t_step=0.001, tmax=5, loc=[0., .0, .0]):
+def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, .0]):
     """
 
     :param structure:
@@ -53,13 +53,13 @@ def simulate(structure, trajectory_function, t_step=0.001, tmax=5, loc=[0., .0, 
     plt.show()
 
     # sum of the squared forces
-    plt.plot(np.sum(np.array(forces_log)**2, axis=1))
+    plt.plot(np.sum(np.array(forces_log) ** 2, axis=1))
     plt.show()
 
 
 if __name__ == '__main__':
-    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0])
-    structure = Structure()
+    structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, -params.cage_width], yy=[0, 0], motor_failure=[])
+    # structure = Structure()
     trajectory_function = circular_trajectory
 
     simulate(structure, trajectory_function)
