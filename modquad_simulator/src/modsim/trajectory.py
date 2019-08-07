@@ -4,6 +4,10 @@ import numpy as np
 import sys
 
 class traj_data:
+    """
+    This class is used to store the data we only need to compute once
+    for the trajectory. Specifically used in min snap trajectory
+    """
     def __init__(self, times, dists, totaldist, waypts, cx, cy, cz):
         self.times     = times
         self.dists     = dists
@@ -67,13 +71,8 @@ def simple_waypt_trajectory(waypts, t, t_max=30):
         vel = [0,0,0]
         acc = [0,0,0]
     else:
-        #print waypts
-        #print dists
-        #print totaldist
-        #print times
         ind = 0
         ind = [i for i in range(0,len(times)-1) if t < times[i+1] and t >= times[i]]
-        #assert len(ind) == 1
         ind = ind[0]
         last_waypt = waypts[ind  , :]
         next_waypt = waypts[ind+1, :]
@@ -89,6 +88,13 @@ def simple_waypt_trajectory(waypts, t, t_max=30):
     return [pos, vel, acc, yaw, yawdot]
 
 def _min_snap_init(waypts, t_max=30):
+    """
+    This function is called once at the beginning of the run for min snap trajectory 
+    planning, in which we compute coeffs for the equation of motion describing 
+    all segments of the path
+    :param: waypts is the Nx3 set of (x,y,z) triples we want to hit
+    :param: t_max is the time we want to complete the trajectory in
+    """
     # Find distances between waypts
     dists = np.sqrt(np.sum(((np.roll(waypts, 1, axis=0) - waypts)[1:, :])**2, axis=1))
     totaldist = np.sum(dists)
@@ -96,13 +102,6 @@ def _min_snap_init(waypts, t_max=30):
     # Target times for each waypt
     times = [0] + [dists[i]/totaldist*t_max for i in range(0, len(dists))]
     times = np.cumsum(np.array(times))
-    
-    #print totaldist
-    #print dists
-    #print t_max
-    #print times
-
-    #sys.exit(0)
     
     num_eq = len(waypts) - 1
     num_unknown = num_eq * 8
@@ -157,36 +156,35 @@ def _min_snap_init(waypts, t_max=30):
             z[rows] = np.transpose(np.reshape(np.array([waypts[i,2],0,0,0,0,0,0,waypts[i,2]]), [1,8]))
             rows = rows + 8
             cols = c2
-        #print ""
-        #print np.array2string(np.round_(M, 2), max_line_width=np.inf, formatter={'float_kind':lambda p: "% 10.0f" % p})
-    #print 'x = ', np.transpose(x)
-    #print 'y = ', np.transpose(y)
-    #print 'z = ', np.transpose(z)
     # Solve for the equation coeffs
     cx = np.linalg.solve(M, x)
     cy = np.linalg.solve(M, y)
     cz = np.linalg.solve(M, z)
-    #print cx
-    #print cy
-    #print cz
     return traj_data(times, dists, totaldist, waypts, cx, cy, cz)
 
 def min_snap_trajectory(t, t_max=30, traj_vars=None, waypts=[]):
-    #if len(waypts) < 2:
-    #    raise ValueError("Not enough waypoints")
+    """
+    This is not optimized. Waypoint pruning/adding and cubic splining
+    the path has not been implemented yet.
+    First, call this function by passing in the Nx3 matrix of waypts 
+    consisting of (x,y,z) triples. 
+    Then, during the run, this is called to get the next desired state
+    vector for the robot.
+    :param: t is the current time
+    :param: t_max is the time to complete the trajectory in
+    :param: traj_vars is the object containing the persistent vars
+    :param: waypts is the set N waypts we want to hit (Nx3 matrix)
+    """
     if len(waypts) > 0: # i.e. waypts passed in, then initialize
         traj_vars = _min_snap_init(waypts, t_max)
         return traj_vars
     # find where we are in the trajectory
     if traj_vars is None:
         raise ValueError("No trajectory data passed in")
-    t = t % t_max
+    # TODO not run traj on loop...
+    t = t % t_max # Run the trajectory on a loop
     ind = [i for i in range(0,len(traj_vars.times)-1)
             if t >= traj_vars.times[i] and t < traj_vars.times[i+1]]
-    #print t
-    #print traj_vars.times
-    #if t >= traj_vars.times[-1]:
-    #    ind = [len(traj_vars.times)-1]
     if len(ind) != 1:
         print 'ind = ', ind
         raise ValueError("Malformed times vector for legs of journey")
@@ -213,5 +211,4 @@ def min_snap_trajectory(t, t_max=30, traj_vars=None, waypts=[]):
     acc = res[2,:]
     yaw = 0
     yawdot = 0
-    #print [pos, vel, acc, yaw, yawdot]
     return [pos, vel, acc, yaw, yawdot]
