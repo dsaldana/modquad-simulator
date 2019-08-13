@@ -11,7 +11,6 @@ from modsim.controller import position_controller, modquad_torque_control
 from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, \
     min_snap_trajectory
 
-
 from modsim import params
 from modsim.attitude import attitude_controller
 # from modsim.plot.drawer_vispy import Drawer
@@ -73,7 +72,7 @@ def simulate():
     init_x = rospy.get_param('~init_x', 1.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
-    demo_trajectory = rospy.get_param('~demo_trajectory', True)
+    demo_trajectory = rospy.get_param('~demo_trajectory', False)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
@@ -82,7 +81,12 @@ def simulate():
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    structure4 = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width, 2*params.cage_width, 3*params.cage_width], yy=[0, 0, 0,0], motor_failure=[(1,0)])
+    structure4fail = Structure(ids=['modquad01', 'modquad02'],
+                           xx=[0, params.cage_width, 2 * params.cage_width, 3 * params.cage_width], yy=[0, 0, 0, 0],
+                           motor_failure=[(1, 0)])
+    structure4 = Structure(ids=['modquad01', 'modquad02'],
+                           xx=[0, params.cage_width, 0, params.cage_width], yy=[0, 0, params.cage_width, params.cage_width],
+                           motor_failure=[(1, 0)])
     structure1 = Structure(ids=[robot_id], xx=[0], yy=[0])
     structure = structure4
 
@@ -136,7 +140,7 @@ def simulate():
         F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
 
         # Control of Moments and thrust
-        F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, structure, motor_sat=True)
+        F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, structure, motor_sat=False)
 
         # Simulate
         state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1. / freq)
