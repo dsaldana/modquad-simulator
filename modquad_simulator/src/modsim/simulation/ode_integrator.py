@@ -1,18 +1,17 @@
 from scipy.integrate import ode
 from modsim.simulation.motion import state_derivative
 
-from modsim.controller import position_controller
-from modsim.trajectory import circular_trajectory
-
-from modsim.simulation.motion import control_output
-
 
 def simulation_step(structure, state_vector, F, M, time_step):
-    # ##### Trajectory
-    # desired_state = circular_trajectory(t % 10, 10)
-    # # Position controller
-    # [F, M] = control_output(t, state_vector, desired_state, control_handle)
-
+    """
+    Integrates the state of the qudrotor based on the control input.
+    :param structure:
+    :param state_vector:
+    :param F:
+    :param M:
+    :param time_step:
+    :return:
+    """
     ## Derivative of the robot dynamics
     f_dot = lambda t1, s: state_derivative(s, F, M, structure)
 

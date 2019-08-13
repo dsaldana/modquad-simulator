@@ -11,7 +11,7 @@ from modsim.controller import position_controller
 from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, \
     min_snap_trajectory
 
-from modsim.simulation.motion import control_output, modquad_torque_control
+from modsim.simulation.motion import modquad_torque_control
 
 from modsim import params
 from modsim.attitude import attitude_controller
@@ -21,7 +21,7 @@ from modsim.datatype.structure import Structure
 
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
-from modsim.util.state import init_state, stateToQd
+from modsim.util.state import init_state, state_to_quadrotor
 from modquad_simulator.srv import Dislocation, DislocationResponse
 from modsim.simulation.ode_integrator import simulation_step
 
@@ -132,8 +132,7 @@ def simulate():
             # F, M = control_output( state_vector,
             #                       circular_trajectory(t % 10, 10), control_handle)
 
-            [thrust_force, roll, pitch, yaw] = control_output(state_vector, circular_trajectory(t % 10, 10),
-                                                              position_controller)
+            [thrust_force, roll, pitch, yaw] = position_controller(state_vector, circular_trajectory(t % 10, 10))
 
             F, M = attitude_controller((thrust_force, roll, pitch, yaw), state_vector)
 

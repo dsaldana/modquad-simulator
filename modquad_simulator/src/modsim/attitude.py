@@ -1,6 +1,6 @@
 import math
 
-from modsim.util.state import stateToQd
+from modsim.util.state import state_to_quadrotor
 
 # Old error
 old_e = [0, 0, 0]
@@ -18,7 +18,7 @@ def attitude_controller((F_newtons, roll_des, pitch_des, yaw_des), x):
 
     ### Moments
     # Quaternion to angles
-    quad_state = stateToQd(x)
+    quad_state = state_to_quadrotor(x)
 
     kpx, kdx = 1.43e-5 * 50, 1.43e-5 * 12
 
