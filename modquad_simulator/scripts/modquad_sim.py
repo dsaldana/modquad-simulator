@@ -121,8 +121,6 @@ def simulate():
         # Publish odometry
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
-
-
         if demo_trajectory:
             # F, M = control_output( state_vector,
             #         min_snap_trajectory(t % 10, 30, traj_vars), control_handle)

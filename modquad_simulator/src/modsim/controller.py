@@ -83,7 +83,7 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     # Failing motors
     for mf in structure.motor_failure:
         # rotor_forces[4 * mf[0] + mf[1]] = 0.0
-        rotor_forces[4 * mf[0] + mf[1]] *= 0.9
+        rotor_forces[4 * mf[0] + mf[1]] *= 0.9  # TODO failure is only simulating 90%
 
     # Motor saturation
     if motor_sat:
