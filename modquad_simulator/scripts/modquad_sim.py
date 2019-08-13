@@ -82,8 +82,9 @@ def simulate():
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[(0, 0)])
-    structure = Structure(ids=[robot_id], xx=[0], yy=[0])
+    structure4 = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width, 2*params.cage_width, 3*params.cage_width], yy=[0, 0, 0,0], motor_failure=[(1,0)])
+    structure1 = Structure(ids=[robot_id], xx=[0], yy=[0])
+    structure = structure4
 
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
@@ -137,7 +138,7 @@ def simulate():
             F_single, M_single = attitude_controller((thrust_force, roll, pitch, yaw), state_vector)
 
         # Control of Moments and thrust
-        F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, structure)
+        F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, structure, motor_sat=True)
 
         # Simulate
         state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1. / freq)
