@@ -41,6 +41,9 @@ def control_input_listener(twist_msg):
 
     c1, c2, c3 = -0.6709, 0.1932, 13.0652
     F_g = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
+    if F_g<0:
+        F_g = 0
+
     thrust_newtons = 9.81 * F_g / 1000.  # Force in Newtons
 
 
@@ -81,14 +84,15 @@ def simulate():
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    structure4fail = Structure(ids=['modquad01', 'modquad02'],
-                           xx=[0, params.cage_width, 2 * params.cage_width, 3 * params.cage_width], yy=[0, 0, 0, 0],
-                           motor_failure=[(1, 0)])
     structure4 = Structure(ids=['modquad01', 'modquad02'],
                            xx=[0, params.cage_width, 0, params.cage_width], yy=[0, 0, params.cage_width, params.cage_width],
+                           motor_failure=[])
+    structure4fail = Structure(ids=['modquad01', 'modquad02'],
+                           xx=[0, params.cage_width, 0, params.cage_width],
+                           yy=[0, 0, params.cage_width, params.cage_width],
                            motor_failure=[(1, 0)])
     structure1 = Structure(ids=[robot_id], xx=[0], yy=[0])
-    structure = structure4
+    structure = structure4fail
 
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)

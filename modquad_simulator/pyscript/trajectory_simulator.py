@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 from time import sleep
 
-from modsim.controller import position_controller
+from modsim.attitude import attitude_controller
+from modsim.controller import position_controller, modquad_torque_control
 from modsim.trajectory import circular_trajectory
 
-from modsim.simulation.motion import control_output, modquad_torque_control
 from modsim.util.state import init_state
 
 import numpy as np
@@ -34,7 +34,9 @@ def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, 
         ##### Trajectory
         desired_state = trajectory_function(t % 10, tmax)
         # Position controller for a single robot
-        F, M = control_output(t, state_vector, desired_state, position_controller)
+        [thrust_newtons, roll, pitch, yaw] = position_controller(state_vector, desired_state)
+        F, M = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
+
         # Structure control
         F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
         forces_log.append(rotor_forces)
@@ -50,10 +52,12 @@ def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, 
     state_log = np.array(state_log)
     # Show trajectory x-y
     plt.plot(state_log[:, 0], state_log[:, 1])
+    plt.grid()
     plt.show()
 
     # sum of the squared forces
     plt.plot(np.sum(np.array(forces_log) ** 2, axis=1))
+    plt.grid()
     plt.show()
 
     print "total integral=", np.sum(np.array(forces_log) ** 2) * t_step
@@ -65,6 +69,11 @@ if __name__ == '__main__':
     # w = params.cage_width
     # structure = Structure(ids=['1', '2', '3', '4'], xx=[0., 0., -w, -w], yy=[0., -w, -w, 0.])
     # structure = Structure()
+    structure4 = Structure(ids=['modquad01', 'modquad02'],
+                           xx=[0, params.cage_width, 0, params.cage_width],
+                           yy=[0, 0, params.cage_width, params.cage_width],
+                           motor_failure=[(1, 0)])
+
     trajectory_function = circular_trajectory
 
-    simulate(structure, trajectory_function)
+    simulate(structure4, trajectory_function)
