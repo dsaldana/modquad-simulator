@@ -121,8 +121,7 @@ def simulate():
         # Publish odometry
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
-        # Control output based on crazyflie input
-        F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
+
 
         if demo_trajectory:
             # F, M = control_output( state_vector,
@@ -132,10 +131,11 @@ def simulate():
             # F, M = control_output( state_vector,
             #                       circular_trajectory(t % 10, 10), control_handle)
 
-            [thrust_force, roll, pitch, yaw] = position_controller(state_vector, circular_trajectory(t % 10, 10))
+            # Overwrite the control input with the demo trajectory
+            [thrust_newtons, roll, pitch, yaw] = position_controller(state_vector, circular_trajectory(t % 10, 10))
 
-            # Attitude controller for a single robot
-            F_single, M_single = attitude_controller((thrust_force, roll, pitch, yaw), state_vector)
+        # Control output based on crazyflie input
+        F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
 
         # Control of Moments and thrust
         F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, structure, motor_sat=True)
