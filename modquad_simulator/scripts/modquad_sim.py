@@ -7,11 +7,10 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 import numpy as np
 from numpy import copy
-from modsim.controller import position_controller
+from modsim.controller import position_controller, modquad_torque_control
 from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, \
     min_snap_trajectory
 
-from modsim.simulation.motion import modquad_torque_control
 
 from modsim import params
 from modsim.attitude import attitude_controller
@@ -83,7 +82,7 @@ def simulate():
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[])
+    # structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[(0, 0)])
     structure = Structure(ids=[robot_id], xx=[0], yy=[0])
 
     # Subscribe to control input
@@ -122,7 +121,7 @@ def simulate():
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
         # Control output based on crazyflie input
-        F, M = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
+        F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
 
         if demo_trajectory:
             # F, M = control_output( state_vector,
@@ -134,10 +133,11 @@ def simulate():
 
             [thrust_force, roll, pitch, yaw] = position_controller(state_vector, circular_trajectory(t % 10, 10))
 
-            F, M = attitude_controller((thrust_force, roll, pitch, yaw), state_vector)
+            # Attitude controller for a single robot
+            F_single, M_single = attitude_controller((thrust_force, roll, pitch, yaw), state_vector)
 
         # Control of Moments and thrust
-        F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
+        F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, structure)
 
         # Simulate
         state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1. / freq)
