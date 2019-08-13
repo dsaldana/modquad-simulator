@@ -149,7 +149,7 @@ def state_derivative(state_vector, F, M, structure):
     return sdot
 
 
-def control_output(t, s, desired_state, control_fun):
+def control_output(s, desired_state, control_fun):
     """
     Computes the control output for a given state.
     
@@ -172,6 +172,10 @@ def control_output(t, s, desired_state, control_fun):
     quadrotor.yawdot_des = des_yawdot
 
     # get control outputs
-    [F, M, trpy, drpy] = control_fun(quadrotor)
+    # [F, M, trpy, drpy] = control_fun(quadrotor)
+    #
+    # return F, M
 
-    return F, M
+    trpy = control_fun(quadrotor)
+
+    return trpy

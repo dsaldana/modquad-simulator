@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from time import sleep
 
-from modsim.controller import control_handle
+from modsim.controller import position_controller
 from modsim.trajectory import circular_trajectory
 
 from modsim.simulation.motion import control_output, modquad_torque_control
@@ -34,7 +34,7 @@ def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, 
         ##### Trajectory
         desired_state = trajectory_function(t % 10, tmax)
         # Position controller for a single robot
-        F, M = control_output(t, state_vector, desired_state, control_handle)
+        F, M = control_output(t, state_vector, desired_state, position_controller)
         # Structure control
         F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
         forces_log.append(rotor_forces)

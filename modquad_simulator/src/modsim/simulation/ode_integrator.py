@@ -1,7 +1,7 @@
 from scipy.integrate import ode
 from modsim.simulation.motion import state_derivative
 
-from modsim.controller import control_handle
+from modsim.controller import position_controller
 from modsim.trajectory import circular_trajectory
 
 from modsim.simulation.motion import control_output

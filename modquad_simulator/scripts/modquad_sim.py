@@ -7,9 +7,9 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 import numpy as np
 from numpy import copy
-from modsim.controller import control_handle
+from modsim.controller import position_controller
 from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, \
-        min_snap_trajectory
+    min_snap_trajectory
 
 from modsim.simulation.motion import control_output, modquad_torque_control
 
@@ -19,28 +19,31 @@ from modsim.attitude import attitude_controller
 
 from modsim.datatype.structure import Structure
 
-
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
 from modsim.util.state import init_state, stateToQd
 from modquad_simulator.srv import Dislocation, DislocationResponse
 from modsim.simulation.ode_integrator import simulation_step
 
-
 # Control Input
-thrust_pwm, roll, pitch, yaw = 0, 0, 0, 0
+thrust_newtons, roll, pitch, yaw = 0., 0., 0., 0.
 
 dislocation_srv = (0., 0.)
 
+
 # Control input callback
 def control_input_listener(twist_msg):
-    global thrust_pwm, roll, pitch, yaw
+    global thrust_newtons, roll, pitch, yaw
     # For more info, check:
     # https://github.com/whoenig/crazyflie_ros
     roll = twist_msg.linear.y
     pitch = twist_msg.linear.x
     yaw = twist_msg.angular.z
     thrust_pwm = twist_msg.linear.z
+
+    c1, c2, c3 = -0.6709, 0.1932, 13.0652
+    F_g = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
+    thrust_newtons = 9.81 * F_g / 1000.  # Force in Newtons
 
 
 def dislocate(disloc_msg):
@@ -63,9 +66,8 @@ def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
         publish_transform_stamped_relative(robot_id, main_id, structure_x, structure_y, tf_broadcaster)
 
 
-
 def simulate():
-    global dislocation_srv
+    global dislocation_srv, thrust_newtons, roll, pitch, yaw
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id = rospy.get_param('~robot_id', 'modquad01')
 
@@ -100,12 +102,11 @@ def simulate():
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
     t = 0
-    waypts = np.array([ [0,0,0],
-                        [0,0.5,0],
-                        [0.5,0.5,0],
-                        [0.5,0,0],
-                        [0,0,0]])
-                        
+    waypts = np.array([[0, 0, 0],
+                       [0, 0.5, 0],
+                       [0.5, 0.5, 0],
+                       [0.5, 0, 0],
+                       [0, 0, 0]])
 
     traj_vars = min_snap_trajectory(0, 10, None, waypts)
     while not rospy.is_shutdown():
@@ -121,23 +122,28 @@ def simulate():
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
         # Control output based on crazyflie input
-        F, M = attitude_controller((thrust_pwm, roll, pitch, yaw), state_vector)
+        F, M = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
 
-        
         if demo_trajectory:
-            F, M = control_output(t, state_vector, 
-                    min_snap_trajectory(t % 10, 30, traj_vars), control_handle)
-            #F, M = control_output(t, state_vector, 
+            # F, M = control_output( state_vector,
+            #         min_snap_trajectory(t % 10, 30, traj_vars), control_handle)
+            # F, M = control_output( state_vector,
             #        simple_waypt_trajectory(waypts, t % 10, 30), control_handle)
-            #F, M = control_output(t, state_vector, 
-            #        circular_trajectory(t % 10, 10), control_handle)
+            # F, M = control_output( state_vector,
+            #                       circular_trajectory(t % 10, 10), control_handle)
+
+            [thrust_force, roll, pitch, yaw] = control_output(state_vector, circular_trajectory(t % 10, 10),
+                                                              position_controller)
+
+            F, M = attitude_controller((thrust_force, roll, pitch, yaw), state_vector)
 
         # Control of Moments and thrust
         F_structure, M_structure, rotor_forces = modquad_torque_control(F, M, structure)
 
         # Simulate
-        state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1./freq)
+        state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1. / freq)
         # state_vector[-1] = 0.01-state_vector[-1]
+
 
 if __name__ == '__main__':
     simulate()

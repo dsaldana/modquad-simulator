@@ -3,8 +3,9 @@ from math import sin, cos
 import numpy as np
 
 
-def control_handle(qd):
+def position_controller(qd):
     """
+    PD controller to convert from position to accelerations, and accelerations to attitude.
     Controller: Using these current and desired states, you have to compute the desired controls
 
     :param qd: The object qt contains the current state and the desired state:
@@ -43,13 +44,13 @@ def control_handle(qd):
     F = u1
 
     # Moment
-    u2 = np.dot(params.I, [kp_fi * (phi_des - qd.euler[0]) + kd_fi * (p_des - qd.omega[0]),
-                           kp_theta * (theta_des - qd.euler[1]) + kd_theta * (q_des - qd.omega[1]),
-                           kp_yaw * (psi_des - qd.euler[2]) + kd_yaw * (r_des - qd.omega[2])])
-
-    M = u2
-
-    print M
+    # u2 = np.dot(params.I, [kp_fi * (phi_des - qd.euler[0]) + kd_fi * (p_des - qd.omega[0]),
+    #                        kp_theta * (theta_des - qd.euler[1]) + kd_theta * (q_des - qd.omega[1]),
+    #                        kp_yaw * (psi_des - qd.euler[2]) + kd_yaw * (r_des - qd.omega[2])])
+    #
+    # M = u2
+    #
+    # print M
     # M    = [0 0 0]' # You should fill this in
     # =================== Your code ends here ===================
 
@@ -57,4 +58,5 @@ def control_handle(qd):
     trpy = [F, phi_des, theta_des, psi_des]
     drpy = [0, 0, 0, 0]
 
-    return [F, M, trpy, drpy]
+    # return [F, M, trpy, drpy]
+    return trpy
