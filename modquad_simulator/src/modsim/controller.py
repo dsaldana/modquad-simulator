@@ -21,9 +21,9 @@ def control_handle(qd):
     kp2_u, kd2_u = 10, 71
     kp3_u, kd3_u = 10, 48
 
-    kp_fi, kd_fi = 2000, 125
-    kp_theta, kd_theta = 2000, 125
-    kp_yaw, kd_yaw = 1, 0.05
+    kp_fi, kd_fi = 2000, 125  # roll gains
+    kp_theta, kd_theta = 2000, 125  # pith gain
+    kp_yaw, kd_yaw = 1, 0.05  # yaw gains
 
     r1_acc = kp1_u * (qd.pos_des[0] - qd.pos[0]) + kd1_u * (qd.vel_des[0] - qd.vel[0]) + qd.acc_des[0]
     r2_acc = kp2_u * (qd.pos_des[1] - qd.pos[1]) + kd2_u * (qd.vel_des[1] - qd.vel[1]) + qd.acc_des[1]
@@ -49,6 +49,7 @@ def control_handle(qd):
 
     M = u2
 
+    print M
     # M    = [0 0 0]' # You should fill this in
     # =================== Your code ends here ===================
 
