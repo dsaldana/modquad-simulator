@@ -102,7 +102,7 @@ def _min_snap_init(waypts, t_max=30):
     # Target times for each waypt
     times = [0] + [dists[i]/totaldist*t_max for i in range(0, len(dists))]
     times = np.cumsum(np.array(times))
-    
+
     num_eq = len(waypts) - 1
     num_unknown = num_eq * 8
     M = np.zeros((num_unknown, num_unknown))
@@ -146,8 +146,8 @@ def _min_snap_init(waypts, t_max=30):
                     [2520*T**2, 720*T   , 120     , 0      , 0     , 0     , 0   , 0   ],
                     [5040*T   , 720     , 0       , 0      , 0     , 0     , 0   , 0   ],
                 ])
-            M[r1[0]:r1[-1]+1, c1[0]:c1[-1]+1] = A
-            m2 = -A[1:, :]
+            M[r1[0]:r1[-1]+1, c1[0]:c1[-1]+1] = A # Load A into the overall coeff matrix
+            m2 = -A[1:, :] # The corresponding entries for the next segment
             pvec = np.reshape(A[0, :], [1, 8])
             M[r2[0]:r2[-1]+1, c2[0]:c2[-1]+1] = np.vstack([m2, pvec])
             # x, y, z are all single columns
@@ -162,7 +162,7 @@ def _min_snap_init(waypts, t_max=30):
     cz = np.linalg.solve(M, z)
     return traj_data(times, dists, totaldist, waypts, cx, cy, cz)
 
-def min_snap_trajectory(t, t_max=30, traj_vars=None, waypts=[]):
+def min_snap_trajectory(t, t_max=30, traj_vars=None, waypts=[], ret_snap=False):
     """
     This is not optimized. Waypoint pruning/adding and cubic splining
     the path has not been implemented yet.
@@ -186,7 +186,7 @@ def min_snap_trajectory(t, t_max=30, traj_vars=None, waypts=[]):
     ind = [i for i in range(0,len(traj_vars.times)-1)
             if t >= traj_vars.times[i] and t < traj_vars.times[i+1]]
     if len(ind) != 1:
-        print 'ind = ', ind
+        #print 'ind = ', ind
         raise ValueError("Malformed times vector for legs of journey")
     ind = ind[0]
     prev = traj_vars.waypts[ind, :]
@@ -197,18 +197,32 @@ def min_snap_trajectory(t, t_max=30, traj_vars=None, waypts=[]):
     tdiff = t # tbegin is at t=0
     cind = (ind+1) * 8 - 1
     cind = range(cind-7, cind+1) # array from [cind-7 : cind]
-    A = np.array([
-            [     t**7,     t**6,    t**5,    t**4,   t**3,   t**2, t**1, t**0 ],
-            [   7*t**6,   6*t**5,  5*t**4,  4*t**3, 3*t**2, 2*t   , 1   , 0    ],
-            [  42*t**5,  30*t**4, 20*t**3, 12*t**2, 6*t   , 2     , 0   , 0    ],
-        ])
+    A = [] # to preserve scope
+    if ret_snap:
+        A = np.array([
+                [     t**7,     t**6,    t**5,    t**4,   t**3,   t**2, t**1, t**0 ],
+                [   7*t**6,   6*t**5,  5*t**4,  4*t**3, 3*t**2, 2*t   , 1   , 0    ],
+                [  42*t**5,  30*t**4, 20*t**3, 12*t**2, 6*t   , 2     , 0   , 0    ],
+                [ 210*t**4, 120*t**3,  60*t**2, 24*t   , 6     , 0     , 0   , 0   ],
+                [ 840*t**3, 360*t**2, 120*t   , 24     , 0     , 0     , 0   , 0   ]
+            ])
+    else:
+        A = np.array([
+                [     t**7,     t**6,    t**5,    t**4,   t**3,   t**2, t**1, t**0 ],
+                [   7*t**6,   6*t**5,  5*t**4,  4*t**3, 3*t**2, 2*t   , 1   , 0    ],
+                [  42*t**5,  30*t**4, 20*t**3, 12*t**2, 6*t   , 2     , 0   , 0    ]
+            ])
     coeffs = np.squeeze(np.stack([traj_vars.cx[cind[0]:cind[-1]+1], 
                         traj_vars.cy[cind[0]:cind[-1]+1], 
                         traj_vars.cz[cind[0]:cind[-1]+1]], axis=1))
     res = np.dot(A, coeffs)
-    pos = res[0,:]
-    vel = res[1,:]
-    acc = res[2,:]
-    yaw = 0
-    yawdot = 0
-    return [pos, vel, acc, yaw, yawdot]
+    if ret_snap:
+        return res[4,:]
+    else:
+        pos = res[0,:]
+        vel = res[1,:]
+        acc = res[2,:]
+        yaw = 0
+        yawdot = 0
+    
+        return [pos, vel, acc, yaw, yawdot]
