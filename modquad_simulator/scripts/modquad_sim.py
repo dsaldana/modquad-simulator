@@ -75,7 +75,7 @@ def simulate():
     init_x = rospy.get_param('~init_x', 1.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
-    demo_trajectory = rospy.get_param('~demo_trajectory', False)
+    demo_trajectory = rospy.get_param('~demo_trajectory', True)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'

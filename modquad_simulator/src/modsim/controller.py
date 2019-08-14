@@ -3,6 +3,8 @@ from math import sin, cos
 import numpy as np
 from math import sqrt
 
+accumulated_error = np.array([0., 0., 0.])
+
 
 def position_controller(state_vector, desired_state):
     """
@@ -14,6 +16,7 @@ def position_controller(state_vector, desired_state):
                 * The desired states are: qd.pos_des, qd.vel_des, qd.acc_des, qd.yaw_des, qd.yawdot_des
     :return: desired thrust and attitude
     """
+    global accumulated_error
 
     # Desired state
     [pos_des, vel_des, acc_des, yaw_des, des_yawdot] = desired_state
@@ -26,13 +29,20 @@ def position_controller(state_vector, desired_state):
     m = params.mass
     g = params.grav
 
-    kp1_u, kd1_u = 10, 71
-    kp2_u, kd2_u = 10, 71
-    kp3_u, kd3_u = 10, 48
+    kp1_u, kd1_u, ki1_u = 10., 71., .05
+    kp2_u, kd2_u, ki2_u = 10., 71., .05
+    kp3_u, kd3_u, ki3_u = 10., 48., .0
 
-    r1_acc = kp1_u * (pos_des[0] - pos[0]) + kd1_u * (vel_des[0] - vel[0]) + acc_des[0]
-    r2_acc = kp2_u * (pos_des[1] - pos[1]) + kd2_u * (vel_des[1] - vel[1]) + acc_des[1]
-    r3_acc = kp3_u * (pos_des[2] - pos[2]) + kd3_u * (vel_des[2] - vel[2]) + acc_des[2]
+    # Error
+    pos_error = pos_des - pos
+    vel_error = vel_des - vel
+    accumulated_error += pos_error
+    print pos_error
+
+    # Desired acceleration
+    r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * accumulated_error[0]
+    r2_acc = kp2_u * pos_error[1] + kd2_u * vel_error[1] + acc_des[1] + ki2_u * accumulated_error[1]
+    r3_acc = kp3_u * pos_error[2] + kd3_u * vel_error[2] + acc_des[2] + ki3_u * accumulated_error[2]
 
     phi_des = (r1_acc * sin(yaw_des) - r2_acc * cos(yaw_des)) / g
     theta_des = (r1_acc * cos(yaw_des) + r2_acc * sin(yaw_des)) / g
@@ -98,47 +108,4 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     Mz = M[2]
 
     return F, [Mx, My, Mz], rotor_forces
-
-
-
-
-
-# def crazyflie_torquecontrol(F, M):
-#     """
-#     It receives a desired force and moment. The equation of motion of the crazyflie simulates the motor saturation.
-#     :param F: desired total thrust, float
-#     :param M: desired moments, 3 x 1 float vector
-#     :return: thrust and moments after saturation
-#     """
-#     ## Equation of motion for X-configuration. From moments to rotor forces (power distribution)
-#     #         ^ X
-#     #    (4)  |      (1) [L, -L]
-#     #   Y<-----
-#     #    (3)         (2)
-#     L = params.arm_length * sqrt(2) / 2
-#     A = [[0.25, -.25 / L, -.25 / L],
-#          [0.25, -.25 / L, .25 / L],
-#          [0.25, .25 / L, .25 / L],
-#          [0.25, .25 / L, -.25 / L]]
-#
-#     prop_thrusts = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
-#     # Limit the force and moments due to actuator limits
-#     # Motor saturation
-#     prop_thrusts[prop_thrusts > params.maxF / 4] = params.maxF / 4
-#     prop_thrusts[prop_thrusts < params.minF / 4] = params.minF / 4
-#     prop_thrusts_clamped = prop_thrusts
-#
-#     # From prop forces to total moments
-#     B = [[1, 1, 1, 1],
-#          [-L, -L, L, L],
-#          [-L, L, L, -L]]
-#     # Total Thrust after saturation
-#     nF = np.dot(B[0], prop_thrusts_clamped)
-#
-#     Mxy = np.dot(B[1:], prop_thrusts_clamped)
-#     nM = [Mxy[0], Mxy[1], M[2]]
-#
-#     return nF, nM
-
-
 
