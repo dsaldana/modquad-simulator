@@ -29,8 +29,8 @@ def position_controller(state_vector, desired_state):
     m = params.mass
     g = params.grav
 
-    kp1_u, kd1_u, ki1_u = 10., 71., .05
-    kp2_u, kd2_u, ki2_u = 10., 71., .05
+    kp1_u, kd1_u, ki1_u = 10., 71., .0
+    kp2_u, kd2_u, ki2_u = 10., 71., .0
     kp3_u, kd3_u, ki3_u = 10., 48., .0
 
     # Error
@@ -90,10 +90,10 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     A = [[0.25, sy * .25 / L, -sx * .25 / L] for sx, sy in zip(sign_rx, sign_ry)]
 
     rotor_forces = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
+
     # Failing motors
     for mf in structure.motor_failure:
-        # rotor_forces[4 * mf[0] + mf[1]] = 0.0
-        rotor_forces[4 * mf[0] + mf[1]] *= 0.9  # TODO failure is only simulating 90%
+        rotor_forces[4 * mf[0] + mf[1]] *= 0.0
 
     # Motor saturation
     if motor_sat:
