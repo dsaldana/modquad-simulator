@@ -3,7 +3,7 @@ from time import sleep
 
 from modsim.attitude import attitude_controller
 from modsim.controller import position_controller, modquad_torque_control
-from modsim.trajectory import circular_trajectory
+from modsim.trajectory import circular_trajectory, min_snap_trajectory
 
 from modsim.util.state import init_state
 
@@ -67,8 +67,7 @@ def simulate(structure, trajectory_function, t_step=0.005, tmax=5, loc=[1., .0, 
 
     print "total integral=", np.sum(np.array(forces_log) ** 2) * t_step
 
-
-if __name__ == '__main__':
+def circ_traj_test(): 
     structure = Structure(ids=['modquad01', 'modquad02'], xx=[0, params.cage_width], yy=[0, 0], motor_failure=[])
 
     # w = params.cage_width
@@ -82,3 +81,32 @@ if __name__ == '__main__':
     trajectory_function = circular_trajectory
 
     simulate(structure4, trajectory_function)
+
+def rect_test(wayptset):
+    struc = np.zeros((3,4))
+    num_mod = 10
+    for i in range(0,3):
+        for j in range(0,4):
+            if i == 0 or i == 2 or j == 0 or j == 3:
+                struc[i,j] = 1
+    m = modset(num_mod, struc)
+    gsolve(m, waypts=wayptset)
+    
+    tmp = copy.deepcopy(m)
+    tmp.fault_rotor(3, 3)
+    tmp.fault_rotor(3, 2)
+    gsolve(tmp, waypts=wayptset)
+    print("Comparing the outputs after faulting [3, 3] and [3, 2]")
+    print(m.pi)
+    print(tmp.pi)
+
+if __name__ == '__main__':
+    wayptset = np.array([[0,0,0],
+                         [1,0,0],
+                         [2,0,0],
+                         [2,1,0],
+                         [1,1,0],
+                         [0,1,0],
+                         [0,0,0]])
+    #rect_test(wayptset)
+    circ_traj_test()
