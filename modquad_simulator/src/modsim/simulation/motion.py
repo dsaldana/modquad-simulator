@@ -34,7 +34,6 @@ def state_derivative(state_vector, F, M, structure):
     qdot = [qdot[1], qdot[2], qdot[3], qdot[0]]  # reorder the quaternion based on the ROS quaternion representation.
 
     # Angular acceleration
-    # angular_acceleration = np.dot(params.invI, (M - np.cross(omega, np.dot(params.I, omega))))  # For a ingle robot
     angular_acceleration = np.dot(structure.inverse_inertia,
                                   (M - np.cross(omega, np.dot(structure.inertia_tensor, omega))))
 

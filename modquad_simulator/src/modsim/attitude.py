@@ -1,9 +1,10 @@
 import math
 
 from modsim.util.state import state_to_quadrotor
+import numpy as np
 
 # Old error
-old_e = [0, 0, 0]
+accumulated_error = np.array([0., 0., 0.])
 
 
 def attitude_controller((F_newtons, roll_des, pitch_des, yaw_des), x):
@@ -14,18 +15,21 @@ def attitude_controller((F_newtons, roll_des, pitch_des, yaw_des), x):
     :param x:
     :return:
     """
-    global old_e
+    global accumulated_error
 
     ### Moments
     # Quaternion to angles
     quad_state = state_to_quadrotor(x)
 
-    kpx, kdx = 1.43e-5 * 50, 1.43e-5 * 12
+    kpx, kdx, kix = 1.43e-5 * 250, 1.43e-5 * 60, .0002
 
     e = [math.radians(roll_des) - quad_state.euler[0],
          math.radians(pitch_des) - quad_state.euler[1],
          math.radians(yaw_des) - quad_state.euler[2]]
 
-    Mx = kpx * e[0] + kdx * (0 - quad_state.omega[0])
-    My = kpx * e[1] + kdx * (0 - quad_state.omega[1])
+    accumulated_error += e
+    # print accumulated_error[0]
+
+    Mx = kpx * e[0] + kdx * (0 - quad_state.omega[0]) + kix * accumulated_error[0]
+    My = kpx * e[1] + kdx * (0 - quad_state.omega[1]) + kix * accumulated_error[1]
     return F_newtons, [Mx, My, 0]

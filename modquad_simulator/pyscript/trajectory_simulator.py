@@ -77,7 +77,7 @@ if __name__ == '__main__':
     structure4 = Structure(ids=['modquad01', 'modquad02'],
                            xx=[0, params.cage_width, 0, params.cage_width],
                            yy=[0, 0, params.cage_width, params.cage_width],
-                           motor_failure=[(1, 0)])
+                           motor_failure=[(1, 2)])
 
     trajectory_function = circular_trajectory
 
