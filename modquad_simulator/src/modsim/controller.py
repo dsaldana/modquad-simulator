@@ -37,7 +37,7 @@ def position_controller(state_vector, desired_state):
     pos_error = pos_des - pos
     vel_error = vel_des - vel
     accumulated_error += pos_error
-    print pos_error
+    # print pos_error
 
     # Desired acceleration
     r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * accumulated_error[0]
@@ -59,6 +59,7 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     """
     This function is similar to crazyflie_motion, but it is made for modular robots. So it specifies the dynamics
     of the modular structure. It receives a desired force and moment of a single robot.
+    :param structure:
     :param motor_sat: motor saturation
     :param F: desired total thrust, float
     :param M: desired moments, 3 x 1 float vector
