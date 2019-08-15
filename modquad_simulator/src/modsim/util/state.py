@@ -22,7 +22,7 @@ def init_state(pos, yaw):
 
 ########## Quadrotor function
 
-def stateToQd(x):
+def state_to_quadrotor(x):
     """
     %Converts qd struct used in hardware to x vector used in simulation
     :param x: is 1 x 13 vector of state variables [pos vel quat omega]

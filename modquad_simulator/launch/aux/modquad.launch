@@ -16,16 +16,17 @@
     <group ns="$(arg model)">
 
         <!-- Simulator -->
-        <node pkg="modquad_simulator" type="modquad_sim.py" name="modquad_sim" output="screen">
-            <param name="~robot_id" value="$(arg model)"/>
-            <param name="~init_x" value="$(arg init_x)" type="double"/>
-            <param name="~init_y" value="$(arg init_y)" type="double"/>
-        </node>
+<!--        <node pkg="modquad_simulator" type="modquad_sim.py" name="modquad_sim" output="screen">-->
+<!--            <param name="~robot_id" value="$(arg model)"/>-->
+<!--            <param name="~init_x" value="$(arg init_x)" type="double"/>-->
+<!--            <param name="~init_y" value="$(arg init_y)" type="double"/>-->
+<!--        </node>-->
 
         <!--position controller-->
-        <include file="$(find crazyflie_controller)/launch/crazyflie2.launch">
-            <arg name="frame" value="$(arg model)"/>
-        </include>
+        <node name="controller" pkg="crazyflie_controller" type="crazyflie_controller" output="screen">
+            <param name="frame" value="$(arg model)"/><param name="world" value="worldFrame"/>
+            <rosparam command="load" file="$(find modquad_simulator)/config/crazyflie2_gains.yaml"/>
+        </node>
 
 
         <!--mesh publisher for rviz visualization-->

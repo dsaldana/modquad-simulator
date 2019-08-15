@@ -14,16 +14,17 @@ class Structure:
         :param motor_failure: motor failures as a set of tuples, (module from 0 to n-1, rotor number from 0 to 3)
         """
         self.ids = ids
-        self.xx = xx
-        self.yy = yy
+        self.xx = np.array(xx)
+        self.yy = np.array(yy)
         self.motor_failure = motor_failure
         self.motor_roll = [[0, 0, 0, 0], [0, 0, 0, 0]]
         self.motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
 
         ##
         self.n = len(self.xx)  # Number of modules
-        self.xx = np.array(self.xx) - np.average(self.xx)  # x-coordinates with respect to the center of mass
-        self.yy = np.array(self.yy) - np.average(self.yy)  # y-coordinates with respect to the center of mass
+        self.xx = np.array(self.xx) - np.average(self.xx)# x-coordinates with respect to the center of mass
+        self.yy = np.array(self.yy) - np.average(self.yy)# y-coordinates with respect to the center of mass
+
 
         # Equation (4) of the Modquad paper
         # FIXME inertia with parallel axis theorem is not working. Temporary multiplied by zero
