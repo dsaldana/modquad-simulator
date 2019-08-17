@@ -28,7 +28,7 @@ class Structure:
 
         # Equation (4) of the Modquad paper
         # FIXME inertia with parallel axis theorem is not working. Temporary multiplied by zero
-        self.inertia_tensor = self.n * np.array(params.I) + 0. * params.mass * np.diag([
+        self.inertia_tensor = 0.5 * self.n * np.array(params.I) + 0.01 * params.mass * np.diag([
             np.sum(self.yy ** 2),
             np.sum(self.xx ** 2),
             np.sum(self.yy ** 2) + np.sum(self.xx ** 2)

@@ -29,9 +29,15 @@ def position_controller(state_vector, desired_state):
     m = params.mass
     g = params.grav
 
-    kp1_u, kd1_u, ki1_u = 10., 71., .0
-    kp2_u, kd2_u, ki2_u = 10., 71., .0
-    kp3_u, kd3_u, ki3_u = 10., 48., .0
+    xyp =   05.0 #355.0
+    xyd =   50.0 #255.0
+    xyi =    0.0 #145.0
+    zp  =    8.0 #1925.0
+    zd  =   18.0 #  0.0
+    zi  =    2.5 # 45.0
+    kp1_u, kd1_u, ki1_u = xyp, xyd, xyi #10., 71., .0
+    kp2_u, kd2_u, ki2_u = xyp, xyd, xyi #10., 71., .0
+    kp3_u, kd3_u, ki3_u =  zp,  zd,  zi #10., 48., .0
 
     # Error
     pos_error = pos_des - pos
@@ -50,6 +56,9 @@ def position_controller(state_vector, desired_state):
 
     # Thrust
     thrust = m * g + m * r3_acc
+    #print(pos_des, pos)
+    #print(pos_error, thrust)
+    #print('---')
 
     # desired thrust and attitude
     return [thrust, phi_des, theta_des, psi_des]

@@ -19,7 +19,7 @@ from modsim.simulation.ode_integrator import simulation_step
 from modsim import params
 from modsim.datatype.structure import Structure
 
-def gen_obj_func(f, mset, xx, yy, trajectory_function=min_snap_trajectory, waypts=None, pos_inds=[], mod_inds=[], rot_inds=[], t_step=0.005, tmax=10, loc=[0., 0., 0.]):
+def gen_obj_func(f, mset, xx, yy, trajectory_function=min_snap_trajectory, waypts=None, pos_inds=[], mod_inds=[], rot_inds=[], t_step=0.005, speed=1, loc=[0., 0., 0.]):
     """
     :param pi: is the gurobi vars denoting whether a module is assigned to a module position
     :param structure: is (redundant?)
@@ -30,14 +30,17 @@ def gen_obj_func(f, mset, xx, yy, trajectory_function=min_snap_trajectory, waypt
     """
 
     traj_vars = None
+    tmax = 10
     if waypts is not None:
-        traj_vars = trajectory_function(0, tmax, None, waypts)
+        traj_vars = trajectory_function(0, speed, None, waypts)
+        tmax = speed / traj_vars.total_dist
+
     
     # Generate constant expressions of integrals of abs(snap)
     snapx = 0.0
     snapy = 0.0
     for t in np.arange(0, tmax, t_step):
-        snap = trajectory_function(t % 10, tmax, traj_vars, ret_snap=True)
+        snap = trajectory_function(t, speed, traj_vars, ret_snap=True)
         snapx += abs(snap[0])
         snapy += abs(snap[1])
         # We do not use snapz
@@ -53,8 +56,8 @@ def gen_obj_func(f, mset, xx, yy, trajectory_function=min_snap_trajectory, waypt
     inds = [p for p in itertools.product(pos_inds,mod_inds,rot_inds)]
     Mx = quicksum((params.cage_width * int(i[0]) - avgx + 0.5 * pow(-1, int(k/2)) * params.chassis_width) * f[i[0], i[1], j, k] for i,j,k in inds)
     My = quicksum((params.cage_width * int(i[1]) - avgy + 0.5 * int(bool(k % 3))  * params.chassis_width) * f[i[0], i[1], j, k] for i,j,k in inds)
-    print("Mx = {}".format(Mx))
-    print("My = {}".format(My))
+    #print("Mx = {}".format(Mx))
+    #print("My = {}".format(My))
 
     # Combine to form the objective function
     snapsum = snapx + snapy
