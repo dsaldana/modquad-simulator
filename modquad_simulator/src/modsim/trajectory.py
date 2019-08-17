@@ -131,7 +131,11 @@ def _min_snap_init(waypts, speed=1):
     xq = interp.barycentric_interpolate(times, waypts[:,0], newtimes)
     yq = interp.barycentric_interpolate(times, waypts[:,1], newtimes)
     zq = interp.barycentric_interpolate(times, waypts[:,2], newtimes)
+    start = waypts[0, :]
+    end = waypts[-1, :]
     waypts = np.transpose(np.vstack((xq, yq, zq)))
+    waypts[0, :] = start
+    waypts[-1, :] = end
     times = np.arange(0,t_max+tstep,tstep)
     #print(newtimes)
     #print(xq)
