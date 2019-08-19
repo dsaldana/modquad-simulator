@@ -60,8 +60,6 @@
         <arg name="color_g" default="0.0"/> 
         <arg name="color_b" default="0.0"/> 
     </include>
-
-<!--
     <include file="$(arg launch_path)/modquad.launch"> 
         <arg name="model" value="modquad06"/> 
  
@@ -95,7 +93,6 @@
         <arg name="color_g" default="0.0"/> 
         <arg name="color_b" default="0.0"/> 
     </include>
--->
 <!--    <include file="$(arg launch_path)/modquad.launch"> 
         <arg name="model" value="modquad09"/> 
  
@@ -121,7 +118,7 @@
 -->
 
 
-    <param name="num_robots" value="5" type="int"/>
+    <param name="num_robots" value="8" type="int"/>
     <!--Robot Visualization-->
     <!--<node pkg="modquad_simulator" type="visualizer.py" name="visual"/>-->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find modquad_simulator)/rviz/four-robots.rviz" required="true"/>

@@ -93,6 +93,30 @@ Visualization Manager:
         /modquad05/mesh_visualization: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /modquad06/mesh_visualization/robot
+      Name: modquad06
+      Namespaces:
+        /modquad06/mesh_visualization: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /modquad07/mesh_visualization/robot
+      Name: modquad07
+      Namespaces:
+        /modquad07/mesh_visualization: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /modquad08/mesh_visualization/robot
+      Name: modquad08
+      Namespaces:
+        /modquad08/mesh_visualization: true
+      Queue Size: 100
+      Value: true
     - Class: rviz/Axes
       Enabled: true
       Length: 0.5
@@ -175,6 +199,51 @@ Visualization Manager:
           Shaft Radius: 0.009999999776482582
           Shape: Arrow
           Topic: /modquad05/goal
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz/Pose
+          Color: 115; 210; 22
+          Enabled: true
+          Head Length: 0.05000000074505806
+          Head Radius: 0.029999999329447746
+          Name: goal06
+          Shaft Length: 0.10000000149011612
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow
+          Topic: /modquad06/goal
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz/Pose
+          Color: 115; 210; 22
+          Enabled: true
+          Head Length: 0.05000000074505806
+          Head Radius: 0.029999999329447746
+          Name: goal07
+          Shaft Length: 0.10000000149011612
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow
+          Topic: /modquad07/goal
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz/Pose
+          Color: 115; 210; 22
+          Enabled: true
+          Head Length: 0.05000000074505806
+          Head Radius: 0.029999999329447746
+          Name: goal08
+          Shaft Length: 0.10000000149011612
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow
+          Topic: /modquad08/goal
           Unreliable: false
           Value: true
       Enabled: true

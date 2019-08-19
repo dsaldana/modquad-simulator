@@ -204,8 +204,8 @@ if __name__ == '__main__':
     print("starting simulation")
     #mset = structure_gen.square(2)
     results = test_shape_with_waypts(
-                       structure_gen.fwd_ushape(3, 2),
-                       #structure_gen.zero(3, 3), 
+                       #structure_gen.fwd_ushape(3, 2),
+                       structure_gen.zero(3, 3), 
                        #structure_gen.square(2), 
                        #waypt_gen.line([0,0,0], [i,i,i]), 
                        #waypt_gen.rect(10,10),
