@@ -22,7 +22,7 @@
 <!--            <param name="~init_y" value="$(arg init_y)" type="double"/>-->
 <!--        </node>-->
 
-        <!--position controller-->
+        <!--position controller - what is the position controller in controller.py then? -->
         <node name="controller" pkg="crazyflie_controller" type="crazyflie_controller" output="screen">
             <param name="frame" value="$(arg model)"/><param name="world" value="worldFrame"/>
             <rosparam command="load" file="$(find modquad_simulator)/config/crazyflie2_gains.yaml"/>

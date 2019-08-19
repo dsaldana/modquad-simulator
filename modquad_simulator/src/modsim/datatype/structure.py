@@ -20,11 +20,17 @@ class Structure:
         self.motor_roll = [[0, 0, 0, 0], [0, 0, 0, 0]]
         self.motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
 
+        np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
         ##
         self.n = len(self.xx)  # Number of modules
+        print(self.xx)
+        print(self.yy)
+        print(np.mean(self.xx))
+        print(np.mean(self.yy))
         self.xx = np.array(self.xx) - np.average(self.xx)# x-coordinates with respect to the center of mass
         self.yy = np.array(self.yy) - np.average(self.yy)# y-coordinates with respect to the center of mass
-
+        print(self.xx)
+        print(self.yy)
 
         # Equation (4) of the Modquad paper
         # FIXME inertia with parallel axis theorem is not working. Temporary multiplied by zero

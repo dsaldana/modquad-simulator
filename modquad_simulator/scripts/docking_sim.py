@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-
 import networkx as nx
 import numpy as np
 import rospy
@@ -12,7 +10,8 @@ from modsim.util.docking import docking_array_to_graph, components_locations
 zero = np.array([0., 0.])
 n = rospy.get_param('num_robots', 1)
 old_components = [[i] for i in range(n)]
-old_centroids = {str(sorted(c)): zero for c in old_components}  # {Component:centroid=[0,0]}
+old_centroids = {str(sorted(c)): zero for c in old_components}  
+# {Component:centroid=[0,0]}
 
 
 def component_listener(comp_msg):

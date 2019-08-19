@@ -184,9 +184,9 @@ def test_shape_with_waypts(mset, wayptset, speed=1, test_id=""):
     from scheduler.scheduler.modset import modset
     from scheduler.gsolver import gsolve
     trajectory_function = min_snap_trajectory
-    traj_vars = trajectory_function(0, speed, None, wayptset)
+    traj_vars = trajectory_function(0, speed, none, wayptset)
 
-    # Run Set 1
+    # run set 1
     gsolve(mset, waypts=traj_vars.waypts)
     mset.fault_rotor(0,0)
     mset.fault_rotor(0,1)
@@ -205,7 +205,7 @@ def test_shape_with_waypts(mset, wayptset, speed=1, test_id=""):
 if __name__ == '__main__':
     import modquad_sched_interface.waypt_gen as waypt_gen
     import modquad_sched_interface.structure_gen as structure_gen
-    print("Starting simulation")
+    print("starting simulation")
     forces = []
     pos_err = []
     print(waypt_gen.zigzag_xy(3,3))
@@ -224,4 +224,4 @@ if __name__ == '__main__':
         print(f, f[1]-f[0])
     for p in pos_err[0]:
         print(np.average(p))
-        #print("Forces = {}, change in force = {}".format(forces, forces[1]-forces[0]))
+        #print("forces = {}, change in force = {}".format(forces, forces[1]-forces[0]))
