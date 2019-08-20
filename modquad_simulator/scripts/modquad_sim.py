@@ -71,8 +71,6 @@ def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
         publish_odom_relative(structure_x - xx[0], structure_y - yy[0], robot_id, main_id, odom_publishers[robot_id])
         publish_transform_stamped_relative(robot_id, main_id, structure_x - xx[0], structure_y - yy[0], tf_broadcaster)
 
-
-#def simulate():
 def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix=""):
     global dislocation_srv, thrust_newtons, roll, pitch, yaw

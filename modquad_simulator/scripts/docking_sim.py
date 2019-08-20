@@ -51,7 +51,8 @@ def component_listener(comp_msg):
             print disloc
 
             ### Send dislocation to robot i.
-            robot_sufij = '/crazy'
+            #robot_sufij = '/crazy'
+            robot_sufij = '/modquad'
             srv_name = robot_sufij + '%02d/dislocate_robot' % (i + 1)
             rospy.wait_for_service(srv_name)
 
