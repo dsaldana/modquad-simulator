@@ -20,6 +20,7 @@ from modsim.datatype.structure import Structure
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
 from modsim.util.state import init_state, state_to_quadrotor
+from modsim.util.undocking import gen_strucs_from_split
 from modquad_simulator.srv import Dislocation, DislocationResponse, SplitStructure, SplitStructureResponse
 from modsim.simulation.ode_integrator import simulation_step
 
@@ -147,61 +148,17 @@ def simulate(struc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0],
         if t > 10 and not undocked: # Split the structure
             structure = strucs[0]
             traj_vars = trajs[0]
-            print("Try to undock")
             rospy.wait_for_service('SplitStructure')
-            print("Service available")
+            print("Undocking commencing")
             try:
                 split = rospy.ServiceProxy("SplitStructure", SplitStructure)
-                sendToService = [int(string[-2:]) for string in structure.ids], list(structure.xx), list(structure.yy), \
-                                [int(x[0]) for x in structure.motor_failure], \
-                                [int(x[1]) for x in structure.motor_failure], \
-                                split_dim, breakline, split_ind 
-                print("=====")
-                print(sendToService)
-                print("=====")
                 ret = \
                         split([int(string[7:]) for string in structure.ids], list(structure.xx), list(structure.yy), 
                                 [int(x[0]) for x in structure.motor_failure], 
                                 [int(x[1]) for x in structure.motor_failure], 
                                 split_dim, breakline, split_ind)
-                ids1 = ["modquad{:02d}".format(id_val) for id_val in ret.ids1]
-	        xx1  = ret.xx1
-	        yy1  = ret.yy1
-	        f1   = ret.faults1
-                ids2 = ["modquad{:02d}".format(id_val) for id_val in ret.ids2]
-	        xx2  = ret.xx2
-	        yy2  = ret.yy2
-	        f2   = ret.faults2
-                print("Make substruc1")
-                print(ids1)
-                print(xx1)
-                print(yy1)
-                print(f1)
-                print("Make substruc2")
-                print(ids2)
-                print(xx2)
-                print(yy2)
-                print(f2)
-                print("returned vals")
-                print(ret)
-                struc1 = Structure(ids1, xx1, yy1, f1)
-                struc2 = Structure(ids2, xx2, yy2, f2)
+                strucs = gen_strucs_from_split(ret)
                 undocked = True
-                print("Orig")
-                print(struc.ids)
-                print(struc.xx)
-                print(struc.yy)
-                print("===Sub1")
-                print(struc1.ids)
-                print(struc1.xx)
-                print(struc1.yy)
-                print("===Sub2")
-                print(struc2.ids)
-                print(struc2.xx)
-                print(struc2.yy)
-                print('---')
-                strucs = [struc1, struc2]
-                print(state_vecs[0])
                 traj_vars1 = trajectory_function(0, speed, None, waypt_gen.line([state_vecs[0][0]   , state_vecs[0][1]   , state_vecs[0][2]   ], 
                                                                                  [state_vecs[0][0]-15, state_vecs[0][1]-15, state_vecs[0][2]+15] ))
                 traj_vars2 = trajectory_function(0, speed, None, waypt_gen.spiral(5,5,5,2, start_pt=[state_vecs[0][0], state_vecs[0][1], state_vecs[0][2]]))

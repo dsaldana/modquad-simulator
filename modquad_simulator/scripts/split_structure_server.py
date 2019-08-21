@@ -23,16 +23,12 @@ def _struc_to_mat(ids, xx, yy):
     yy.astype(int)
     xx += -1 * np.min(xx)
     yy += -1 * np.min(yy)
-    print(xx)
-    print(yy)
     xx = [int(x) for x in list(xx)]
     yy = [int(y) for y in list(yy)]
     minx = min(xx)
     maxx = max(xx)
     miny = min(yy)
     maxy = max(yy)
-    print("Ranges")
-    print(minx, maxx, miny, maxy)
     struc = np.zeros((int(maxx - minx) + 1, int(maxy - miny) + 1)) - 1
     for i in range(0, len(xx)):
         struc[xx[i], yy[i]] = ids[i]
@@ -56,32 +52,18 @@ def handle_split_structure(args):
     loc        = args.loc
     split_ind  = args.split_ind
     ids = [int(i) for i in ids]
-    print(args)
     struc = _struc_to_mat(ids, xx, yy)
-    print(struc)
 
     # Create networkx graph that replicates the structure shape
     G = nx.grid_graph(dim=[struc.shape[0], struc.shape[1]])
-    print(list(G.nodes))
     rmlist = [pos for pos in G if struc[pos[0], pos[1]] == -1]
     [G.remove_node(n) for n in rmlist]
-    print(list(G.nodes))
 
     # Generate split
     s1nodes = []
     s2nodes = []
-    print("___ Selecting nodes for substrucs ___")
-    for pos in G:
-        print(pos, dim, loc)
-        if pos[dim] < loc:
-            print("\t Goes to s1")
-            s1nodes.append(pos)
-        else:
-            print("\t Goes to s2")
-            s2nodes.append(pos)
-    print("_____________________________________")
-    #s1nodes = [pos for pos in G if pos[dim] <  loc]
-    #s2nodes = [pos for pos in G if pos[dim] >= loc]
+    s1nodes = [pos for pos in G if pos[dim] <  loc]
+    s2nodes = [pos for pos in G if pos[dim] >= loc]
     s1 = G.subgraph(s1nodes)
     s2 = G.subgraph(s2nodes)
     s1c = [c for c in nx.connected_components(s1)]
@@ -109,48 +91,17 @@ def handle_split_structure(args):
         splitters = s2.nodes
     s1 = G.subgraph(retainers)
     s2 = G.subgraph(splitters)
-    print(s1c)
-    print(s2c)
-    print('+++++')
-    print(retainers)
-    print(splitters)
-    print(list(G.nodes))
-    print(s1.nodes)
-    print(s2.nodes)
 
-    ids1 = []
-    ids2 = []
-    xx1  = []
-    xx2  = []
-    yy1  = []
-    yy2  = []
     indices = np.nonzero(struc + 1)
     indices = list(zip(*indices))
-    for i in range(0, len(indices)):
-        node = list(G.nodes)[i]
-        nodeid = struc[node[0], node[1]]
-        nodeind = ids.index(nodeid)
-        print("Considering placing node {} @ pos {} @ index {}".format(nodeid, node, nodeind))
-        print(s1.nodes)
-        print(s2.nodes)
-        if node in s1.nodes:
-            print("s1 go id {}, x {}, y {}".format(ids[i], xx[i], yy[i]))
-            ids1.append(nodeid)
-            xx1.append(xx[nodeind])
-            yy1.append(yy[nodeind])
-        elif node in s2.nodes:
-            print("s2 go id {}, x {}, y {}".format(ids[i], xx[i], yy[i]))
-            ids2.append(nodeid)
-            xx2.append(xx[nodeind])
-            yy2.append(yy[nodeind])
-    print(struc)
-
-    #ids1 = [ids[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes]
-    #ids2 = [ids[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes]
-    #xx1  = [ xx[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes]
-    #xx2  = [ xx[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes]
-    #yy1  = [ yy[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes]
-    #yy2  = [ yy[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes]
+    
+    Gnodes = list(G.nodes)
+    ids1 = [struc[Gnodes[i][0], Gnodes[i][1]] for i in range(0, len(indices)) if Gnodes[i] in s1.nodes]
+    ids2 = [struc[Gnodes[i][0], Gnodes[i][1]] for i in range(0, len(indices)) if Gnodes[i] in s2.nodes]
+    xx1  = [ xx[ids.index(struc[Gnodes[i][0], Gnodes[i][1]])] for i in range(0, len(indices)) if Gnodes[i] in s1.nodes]
+    xx2  = [ xx[ids.index(struc[Gnodes[i][0], Gnodes[i][1]])] for i in range(0, len(indices)) if Gnodes[i] in s2.nodes]
+    yy1  = [ yy[ids.index(struc[Gnodes[i][0], Gnodes[i][1]])] for i in range(0, len(indices)) if Gnodes[i] in s1.nodes]
+    yy2  = [ yy[ids.index(struc[Gnodes[i][0], Gnodes[i][1]])] for i in range(0, len(indices)) if Gnodes[i] in s2.nodes]
 
     #faults1 = [f for f in failures if f[0] in ids1]
     #faults2 = [f for f in failures if f[0] in ids2]
