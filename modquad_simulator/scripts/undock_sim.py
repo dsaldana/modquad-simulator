@@ -20,7 +20,7 @@ from modsim.datatype.structure import Structure
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
 from modsim.util.state import init_state, state_to_quadrotor
-from modsim.util.undocking import gen_strucs_from_split
+from modsim.util.undocking import gen_strucs_from_split, split_srv_input_format
 from modquad_simulator.srv import Dislocation, DislocationResponse, SplitStructure, SplitStructureResponse
 from modsim.simulation.ode_integrator import simulation_step
 
@@ -145,18 +145,20 @@ def simulate(struc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0],
             state_vecs[i] = simulation_step(strucs[i], state_vecs[i], F_structure, M_structure, 1. / freq)
             # state_vector[-1] = 0.01-state_vector[-1]
 
-        if t > 10 and not undocked: # Split the structure
+        if t > 3 and not undocked: # Split the structure
             structure = strucs[0]
             traj_vars = trajs[0]
             rospy.wait_for_service('SplitStructure')
             print("Undocking commencing")
             try:
                 split = rospy.ServiceProxy("SplitStructure", SplitStructure)
-                ret = \
-                        split([int(string[7:]) for string in structure.ids], list(structure.xx), list(structure.yy), 
-                                [int(x[0]) for x in structure.motor_failure], 
-                                [int(x[1]) for x in structure.motor_failure], 
-                                split_dim, breakline, split_ind)
+                inp = split_srv_input_format(structure, split_dim, breakline, split_ind)
+                #ret = \
+                #        split([int(string[7:]) for string in structure.ids], list(structure.xx), list(structure.yy), 
+                #                [int(x[0]) for x in structure.motor_failure], 
+                #                [int(x[1]) for x in structure.motor_failure], 
+                #                split_dim, breakline, split_ind)
+                ret = split(inp[0], inp[1], inp[2], inp[3], inp[4], inp[5], inp[6], inp[7])
                 strucs = gen_strucs_from_split(ret)
                 undocked = True
                 traj_vars1 = trajectory_function(0, speed, None, waypt_gen.line([state_vecs[0][0]   , state_vecs[0][1]   , state_vecs[0][2]   ], 

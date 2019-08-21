@@ -16,3 +16,9 @@ def gen_strucs_from_split(ret):
     struc1 = Structure(ids1, xx1, yy1, f1)
     struc2 = Structure(ids2, xx2, yy2, f2)
     return [struc1, struc2]
+
+def split_srv_input_format(structure, split_dim, breakline, split_ind):
+    return [int(string[7:]) for string in structure.ids], list(structure.xx), list(structure.yy), \
+                                [int(x[0]) for x in structure.motor_failure], \
+                                [int(x[1]) for x in structure.motor_failure], \
+                                split_dim, breakline, split_ind
