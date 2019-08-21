@@ -68,8 +68,20 @@ def handle_split_structure(args):
     print(list(G.nodes))
 
     # Generate split
-    s1nodes = [pos for pos in G if pos[dim] <  loc]
-    s2nodes = [pos for pos in G if pos[dim] >= loc]
+    s1nodes = []
+    s2nodes = []
+    print("___ Selecting nodes for substrucs ___")
+    for pos in G:
+        print(pos, dim, loc)
+        if pos[dim] < loc:
+            print("\t Goes to s1")
+            s1nodes.append(pos)
+        else:
+            print("\t Goes to s2")
+            s2nodes.append(pos)
+    print("_____________________________________")
+    #s1nodes = [pos for pos in G if pos[dim] <  loc]
+    #s2nodes = [pos for pos in G if pos[dim] >= loc]
     s1 = G.subgraph(s1nodes)
     s2 = G.subgraph(s2nodes)
     s1c = [c for c in nx.connected_components(s1)]
@@ -105,16 +117,41 @@ def handle_split_structure(args):
     print(list(G.nodes))
     print(s1.nodes)
     print(s2.nodes)
-    ids1 = [ids[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes]
-    ids2 = [ids[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes]
-    xx1  = np.array([ xx[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes])
-    xx2  = np.array([ xx[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes])
-    yy1  = np.array([ yy[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes])
-    yy2  = np.array([ yy[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes])
-    xx1  = list(xx1)# * (0.0 + params.cage_width))
-    yy1  = list(yy1)# * (0.0 + params.cage_width))
-    xx2  = list(xx2)# * (0.0 + params.cage_width))
-    yy2  = list(yy2)# * (0.0 + params.cage_width))
+
+    ids1 = []
+    ids2 = []
+    xx1  = []
+    xx2  = []
+    yy1  = []
+    yy2  = []
+    indices = np.nonzero(struc + 1)
+    indices = list(zip(*indices))
+    for i in range(0, len(indices)):
+        node = list(G.nodes)[i]
+        nodeid = struc[node[0], node[1]]
+        nodeind = ids.index(nodeid)
+        print("Considering placing node {} @ pos {} @ index {}".format(nodeid, node, nodeind))
+        print(s1.nodes)
+        print(s2.nodes)
+        if node in s1.nodes:
+            print("s1 go id {}, x {}, y {}".format(ids[i], xx[i], yy[i]))
+            ids1.append(nodeid)
+            xx1.append(xx[nodeind])
+            yy1.append(yy[nodeind])
+        elif node in s2.nodes:
+            print("s2 go id {}, x {}, y {}".format(ids[i], xx[i], yy[i]))
+            ids2.append(nodeid)
+            xx2.append(xx[nodeind])
+            yy2.append(yy[nodeind])
+    print(struc)
+
+    #ids1 = [ids[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes]
+    #ids2 = [ids[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes]
+    #xx1  = [ xx[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes]
+    #xx2  = [ xx[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes]
+    #yy1  = [ yy[i] for i in range(0, len(G)) if list(G.nodes)[i] in s1.nodes]
+    #yy2  = [ yy[i] for i in range(0, len(G)) if list(G.nodes)[i] in s2.nodes]
+
     #faults1 = [f for f in failures if f[0] in ids1]
     #faults2 = [f for f in failures if f[0] in ids2]
     # TODO Properly handle faults in splitting

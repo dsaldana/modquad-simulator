@@ -203,9 +203,8 @@ def simulate(struc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0],
                 strucs = [struc1, struc2]
                 print(state_vecs[0])
                 traj_vars1 = trajectory_function(0, speed, None, waypt_gen.line([state_vecs[0][0]   , state_vecs[0][1]   , state_vecs[0][2]   ], 
-                                                                                 [state_vecs[0][0]+15, state_vecs[0][1]+15, state_vecs[0][2]+15] ))
-                traj_vars2 = trajectory_function(0, speed, None, waypt_gen.line([state_vecs[0][0]   , state_vecs[0][1]   , state_vecs[0][2]   ], 
                                                                                  [state_vecs[0][0]-15, state_vecs[0][1]-15, state_vecs[0][2]+15] ))
+                traj_vars2 = trajectory_function(0, speed, None, waypt_gen.spiral(5,5,5,2, start_pt=[state_vecs[0][0], state_vecs[0][1], state_vecs[0][2]]))
                 trajs = [traj_vars1, traj_vars2]
                 state_vecs = [state_vecs[0], state_vecs[0]]
                 t = 0
