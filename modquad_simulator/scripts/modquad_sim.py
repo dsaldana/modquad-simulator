@@ -205,8 +205,8 @@ if __name__ == '__main__':
                        #structure_gen.fwd_ushape(3, 2),
                        structure_gen.zero(3, 3), 
                        #structure_gen.square(2), 
-                       #waypt_gen.line([0,0,0], [i,i,i]), 
+                       waypt_gen.line([0,0,0], [15,15,15]), 
                        #waypt_gen.rect(10,10),
                        #waypt_gen.zigzag_xy(10,5),
-                       waypt_gen.spiral(3,3,3,2),
-                       speed=0.25, test_id="motorsat2_rect10x10_4x4full")
+                       #waypt_gen.spiral(3,3,3,2),
+                       speed=0.55, test_id="motorsat2_rect10x10_4x4full")

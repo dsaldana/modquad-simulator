@@ -55,6 +55,7 @@ catkin_python_setup()
 add_service_files(
   FILES
   Dislocation.srv
+  SplitStructure.srv
 )
 
 ## Generate actions in the 'action' folder

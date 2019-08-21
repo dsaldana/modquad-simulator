@@ -1,0 +1,17 @@
+float32[] ids
+float32[] xx
+float32[] yy
+int32[] mod_faults
+int32[] rot_faults
+int32 dim
+int32 loc
+int32 split_ind
+---
+int32[] ids1
+float32[] xx1
+float32[] yy1
+int32[] faults1
+int32[] ids2
+float32[] xx2
+float32[] yy2
+int32[] faults2
