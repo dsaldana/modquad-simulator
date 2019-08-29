@@ -19,7 +19,7 @@ from modsim.simulation.ode_integrator import simulation_step
 from modsim import params
 from modsim.datatype.structure import Structure
 
-def gen_obj_func(f, mset, xx, yy, trajectory_function=min_snap_trajectory, waypts=None, pos_inds=[], mod_inds=[], rot_inds=[], t_step=0.005, speed=1, loc=[0., 0., 0.]):
+def gen_obj_func(pi, mset, xx, yy, trajectory_function=min_snap_trajectory, waypts=None, pi_inds=[], rot_inds=[], t_step=0.01, speed=1, loc=[0., 0., 0.]):
     """
     :param pi: is the gurobi vars denoting whether a module is assigned to a module position
     :param structure: is (redundant?)
@@ -53,17 +53,39 @@ def gen_obj_func(f, mset, xx, yy, trajectory_function=min_snap_trajectory, waypt
     ind = 0
     avgx = np.average(xx)
     avgy = np.average(yy)
-    inds = [p for p in itertools.product(pos_inds,mod_inds,rot_inds)]
-    Mx = quicksum((params.cage_width * int(i[0]) - avgx + 0.5 * pow(-1, int(k/2)) * params.chassis_width) * f[i[0], i[1], j, k] for i,j,k in inds)
-    My = quicksum((params.cage_width * int(i[1]) - avgy + 0.5 * int(bool(k % 3))  * params.chassis_width) * f[i[0], i[1], j, k] for i,j,k in inds)
-    #print("Mx = {}".format(Mx))
-    #print("My = {}".format(My))
+    IJ = [p for p in pi_inds]
+    xneg = [pow(-1, int(k/2)) for k in rot_inds]
+    yneg = [pow(-1, int((k+1)%3==1)) for k in range(4)]
+    Mx = (params.maxF * 
+            quicksum(pi[i,j] * 
+                quicksum(mset.mods[j].gamma[k] * 
+                        (abs(xx[i])+0.5*params.chassis_width*xneg[k]*
+                            1#(1+pow(10, xneg[k]-3))
+                        ) 
+                for k in rot_inds) 
+            for i,j in IJ))
+    My = (params.maxF * 
+            quicksum(pi[i,j] * 
+                quicksum(mset.mods[j].gamma[k] * 
+                    (abs(yy[i])+0.5*params.chassis_width*yneg[k]*
+                        1#(1+pow(10, yneg[k]-3))
+                    ) 
+                for k in rot_inds) 
+            for i,j in IJ))
+    #Mx = params.maxF * quicksum(pi[i,j] * quicksum(mset.mods[j].gamma[k] * (-xx[i]+0.5*params.chassis_width*xneg[k]*(1+pow(10, xneg[k]-3))) for k in rot_inds) for i,j in IJ)
+    #My = params.maxF * quicksum(pi[i,j] * quicksum(mset.mods[j].gamma[k] * (yy[i]+0.5*params.chassis_width*yneg[k]*(1+pow(10, yneg[k]-3))) for k in rot_inds) for i,j in IJ)
+    #print(Mx)
+    #print(My)
 
     # Combine to form the objective function
     snapsum = snapx + snapy
     expr = (snapx / snapsum) * Mx + (snapy / snapsum) * My
-    #print("generated obj func: {}".format(expr))
+    #print("snapx = {}".format(snapx))
+    #print("snapy = {}".format(snapy))
+    #print(np.nonzero(mset.struc)[0])
+    #print(np.nonzero(mset.struc)[1])
+
     return expr
 
 if __name__ == '__main__':
-    print('')
+    print('You should not need to directly running obfunc_gen.py?')

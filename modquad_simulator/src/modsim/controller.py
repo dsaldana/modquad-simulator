@@ -29,12 +29,12 @@ def position_controller(state_vector, desired_state):
     m = params.mass
     g = params.grav
 
-    xyp =   05.0 #355.0
-    xyd =   50.0 #255.0
-    xyi =    0.0 #145.0
-    zp  =    8.0 #1925.0
-    zd  =   18.0 #  0.0
-    zi  =    2.5 # 45.0
+    xyp =   7.0 #355.0
+    xyd =  70.0 #255.0
+    xyi =   0.0 #145.0
+    zp  =  15.0 #1925.0
+    zd  =  18.0 #  0.0
+    zi  =   2.5 # 45.0
     kp1_u, kd1_u, ki1_u = xyp, xyd, xyi #10., 71., .0
     kp2_u, kd2_u, ki2_u = xyp, xyd, xyi #10., 71., .0
     kp3_u, kd3_u, ki3_u =  zp,  zd,  zi #10., 48., .0
@@ -101,9 +101,9 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
 
     rotor_forces = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
 
-    # Failing motors
+    # Failing motors -- IDs are 1-indexed, but rotor pos are 0-indexed
     for mf in structure.motor_failure:
-        rotor_forces[4 * mf[0] + mf[1]] *= 0.0
+        rotor_forces[4 * (mf[0]-1) + mf[1]] *= 0.0
 
     # Motor saturation
     if motor_sat:

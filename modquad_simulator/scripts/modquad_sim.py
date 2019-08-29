@@ -7,6 +7,10 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 import numpy as np
 from numpy import copy
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import random
+
 from modsim.controller import position_controller, modquad_torque_control
 from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, \
     min_snap_trajectory
@@ -27,6 +31,9 @@ from modquad_sched_interface.interface import convert_modset_to_struc
 import modquad_sched_interface.waypt_gen as waypt_gen
 import modquad_sched_interface.structure_gen as structure_gen
 
+
+fig = plt.figure()
+fig2 = plt.figure()
 
 # Control Input
 thrust_newtons, roll, pitch, yaw = 0., 0., 0., 0.
@@ -78,6 +85,10 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
     rids = [robot_id1]#, robot_id2] #[robot_id1, robot_id2, robot_id3, robot_id4]
 
+    state_log = []
+    forces_log = []
+    pos_err_log = [0,0,0]
+
     init_x = rospy.get_param('~init_x', 0.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
@@ -90,49 +101,50 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
     rospy.Service('dislocate_robot', Dislocation, dislocate)
 
     # TODO read structure and create a service to change it.
-    
-    #structure4 = Structure(ids=['modquad01', 'modquad02'],
-    #                       xx=[0, params.cage_width, 0, params.cage_width], yy=[0, 0, params.cage_width, params.cage_width],
-    #structure4 = Structure(ids=['modquad01', 'modquad02', 'modquad03', 'modquad04'],
-    #                       xx=[0, params.cage_width, 0, params.cage_width], yy=[0, 0, params.cage_width, params.cage_width],
-    #                       motor_failure=[])
-    #structure4fail = Structure(ids=['modquad01', 'modquad02'],
-    #                       xx=[0, params.cage_width, 0, params.cage_width],
-    #                       yy=[0, 0, params.cage_width, params.cage_width],
-    #                       motor_failure=[(1, 0)])
-    #structure1 = Structure(ids=[robot_id], xx=[0], yy=[0])
-    #structure = structure4fail
 
-    #structure = structure4 #structure_gen.zero(3, 2), 
-    #waypts = waypt_gen.line([0,0,0], [3,3,3])
-    #waypts = waypt_gen.spiral(3, 3, 3, 2)
-    #speed = 1.25
-    #trajectory_function = min_snap_trajectory
     traj_vars = trajectory_function(0, speed, None, waypts)
     tmax = traj_vars.total_dist / speed
+
+    # Plot bounds
+    xmin = np.min(traj_vars.waypts[:, 0])-3
+    xmax = np.max(traj_vars.waypts[:, 0])+3
+    ymin = np.min(traj_vars.waypts[:, 1])-3
+    ymax = np.max(traj_vars.waypts[:, 1])+3
+    zmin = np.min(traj_vars.waypts[:, 2])-3
+    zmax = np.max(traj_vars.waypts[:, 2])+3
+
+    # Plotting coeffs
+    overtime = 1.0
+    lw=3
+    alphaset = 0.8
+
+    # 3D plot setup
+    ax = fig2.add_subplot(1,1,1, projection='3d')
+    ax.plot(traj_vars.waypts[:,0], traj_vars.waypts[:,1], traj_vars.waypts[:,2], zdir='z', color='b', linewidth=lw)
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+    ax.set_zlim(zmin, zmax)
 
     # Subscribe to control input
     [rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener) for robot_id in rids]
 
-    print(structure.ids)
-    print(structure.xx)
-    print(structure.yy)
     # Odom publisher
     odom_publishers = {id_robot: rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) for id_robot in
                        structure.ids}
     # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
 
-    ########### Simulator ##############
-    loc = [init_x, init_y, init_z]
     state_vector = init_state(loc, 0)
 
     freq = 100  # 100hz
     rate = rospy.Rate(freq)
     t = 0
-    while not rospy.is_shutdown():
+    ind = 0
+    #while not rospy.is_shutdown() or t < overtime*tmax + 1.0 / freq:
+    while t < overtime*tmax + 1.0 / freq:
         rate.sleep()
         t += 1. / freq
+        print("{} / {}".format(t, overtime*tmax))
 
         ## Dislocate based on request
         state_vector[0] += dislocation_srv[0]
@@ -142,19 +154,14 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
         # Publish odometry
         publish_structure_odometry(structure, state_vector, odom_publishers, tf_broadcaster)
 
+        desired_state = trajectory_function(t, speed, traj_vars)
         if demo_trajectory:
-            # F, M = control_output( state_vector,
-            #         min_snap_trajectory(t % 10, 30, traj_vars), control_handle)
-            # F, M = control_output( state_vector,
-            #        simple_waypt_trajectory(waypts, t % 10, 30), control_handle)
-            # F, M = control_output( state_vector,
-            #                       circular_trajectory(t % 10, 10), control_handle)
-
             # Overwrite the control input with the demo trajectory
-            [thrust_newtons, roll, pitch, yaw] = position_controller(state_vector, trajectory_function(t, speed, traj_vars))
+            [thrust_newtons, roll, pitch, yaw] = position_controller(state_vector, desired_state)
 
         # Control output based on crazyflie input
         F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), state_vector)
+        pos_err_log += np.power(desired_state[0] - state_vector[:3], 2)
 
         # Control of Moments and thrust
         F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, structure, motor_sat=True)
@@ -163,11 +170,88 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
         state_vector = simulation_step(structure, state_vector, F_structure, M_structure, 1. / freq)
         # state_vector[-1] = 0.01-state_vector[-1]
 
+        # Store data
+        state_log.append(np.copy(state_vector))
+        forces_log.append(rotor_forces)
+        ind += 1.0
 
-#if __name__ == '__main__':
-#    simulate()
+    pos_err_log /= ind
+    pos_err_log = np.sqrt(pos_err_log)
+    integral_val = np.sum(np.array(forces_log) ** 2) * (1.0 / freq)
+    print("Final position = {}".format(state_vector[:3]))
 
-def test_shape_with_waypts(mset, wayptset, speed=1, test_id=""):
+    if figind < 1:
+        print("total integral={}".format(integral_val))
+        return integral_val
+    #ax.grid()
+
+    state_log = np.array(state_log)
+    ax.plot(state_log[:, 0], state_log[:, 1], state_log[:, 2], 
+            zdir='z', color='r', linewidth=lw)
+    ax.legend(["Planned Path", "Actual Path"])
+    plt.savefig("figs/3d_{}.pdf".format(filesuffix))
+    plt.sca(fig.gca())
+
+    waypt_time_step = 1.0
+    tstate = np.arange(0, tmax + 1.0/freq, 1.0/freq)
+    twaypt = np.arange(0, tmax + waypt_time_step, waypt_time_step)
+
+    # Generate legend
+    legend_vals = ["Actual path", "Desired path"]
+    # Shrink current axis's height by 10% on the bottom
+    ax2 = plt.gca()
+    box = ax.get_position()
+    ax2.set_position([box.x0, box.y0 + box.height * 0.1,
+                         box.width, box.height * 0.9])
+
+    ylabelsize = 12
+    # Plot first one so that we can do legend
+    plt.subplot(4,1,figind+0)
+    plt.plot(tstate, state_log[:, 0], color='r', linewidth=lw)
+    plt.plot(twaypt, traj_vars.waypts[:,0], alpha=alphaset, color='g', linewidth=lw)
+    plt.ylabel("X position\n(m)", size=ylabelsize)
+    plt.gca().set_ylim(xmin, xmax)
+    plt.gca().xaxis.set_ticklabels([])
+    plt.grid()
+
+    # Put a legend below current axis
+    plt.figlegend(legend_vals, loc='upper center', ncol=2)#bbox_to_anchor=(0.5,  0.95),
+                      #fancybox=True, shadow=True, ncol=2)
+
+    plt.subplot(4,1,figind+1)
+    plt.plot(tstate, state_log[:, 1], color='r', linewidth=lw)
+    plt.plot(twaypt, traj_vars.waypts[:,1], alpha=alphaset, color='g', linewidth=lw)
+    plt.ylabel("Y position\n(m)", size=ylabelsize)
+    plt.gca().set_ylim(ymin, ymax)
+    plt.gca().xaxis.set_ticklabels([])
+    plt.grid()
+
+    plt.subplot(4,1,figind+2)
+    plt.plot(tstate, state_log[:, 2], color='r', linewidth=lw)
+    plt.plot(twaypt, traj_vars.waypts[:,2], alpha=alphaset, color='g', linewidth=lw)
+    plt.ylabel("Z position\n(m)", size=ylabelsize)
+    plt.gca().set_ylim(zmin, zmax)
+    plt.gca().xaxis.set_ticklabels([])
+    plt.grid()
+
+    # sum of the squared forces
+    plt.subplot(4,1,figind+3)
+    plt.xlabel("Time (sec)")
+    plt.ylabel("Force\n(N)", size=ylabelsize)
+    #forces_log = forces_log[5:]
+    #plt.plot(tstate[5:], np.sum(np.array(forces_log) ** 2, axis=1), color='r', linewidth=lw)
+    plt.plot(tstate[5:], np.array(forces_log[5:]) ** 2, color='r', linewidth=lw)
+    plt.gca().set_ylim(0, 0.10)
+    plt.grid()
+    #strftime("%Y-%m-%d_%H:%M:%S", localtime()), 
+    plt.savefig("figs/2d_{}.pdf".format(filesuffix))
+    print("total integral={}".format(np.sum(np.array(forces_log) ** 2) * t_step))
+    plt.clf() # Clear figures
+    plt.sca(ax)
+    plt.clf()
+    return integral_val, pos_err_log
+
+def test_shape_with_waypts(mset, wayptset, speed=1, test_id="", doreform=False, max_fault=1):
     from modquad_sched_interface.interface import convert_modset_to_struc
     from compiled_scheduler.modset import modset
     from scheduler.gsolver import gsolve
@@ -175,38 +259,49 @@ def test_shape_with_waypts(mset, wayptset, speed=1, test_id=""):
     traj_vars = trajectory_function(0, speed, None, wayptset)
 
     # Run Set 1
-    gsolve(mset, waypts=traj_vars.waypts)
-    #mset.fault_rotor(0,0)
-    #mset.fault_rotor(0,1)
-    #mset.fault_rotor(0,2)
-    #mset.fault_rotor(2,3)
-    struc1 = convert_modset_to_struc(mset)
-    print(struc1.xx)
-    print(struc1.yy)
-    #import sys
-    #sys.exit(0)
-    simulate(struc1, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
+    if not doreform:
+        gsolve(mset, waypts=traj_vars.waypts)
 
-    #tmp = copy.deepcopy(mset)
-    ##tmp.fault_rotor(2, 3)
-    #gsolve(tmp, waypts=traj_vars.waypts)
-    #struc2 = convert_modset_to_struc(tmp)
-    #forces2, pos_err2 = simulate(struc2, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_reform".format(test_id))
-    #return [forces1, forces2, pos_err1, pos_err2]
-    return None
+    #faulty_rots = []
+    #random.seed(0)
+    #num_faults = 0
+    #while num_faults < max_fault:
+    #    newfault = (random.randint(0,mset.num_mod-1), random.randint(0,3))
+    #    if newfault not in faulty_rots:
+    #        faulty_rots.append(newfault)
+    #        num_faults += 1
+
+    #for f in faulty_rots:
+    #    mset.fault_rotor(f[0], f[1])
+
+    mset.fault_rotor(4,0)
+    mset.fault_rotor(4,1)
+    mset.fault_rotor(4,2)
+    mset.fault_rotor(4,3)
+
+    if doreform:
+        gsolve(mset, waypts=traj_vars.waypts)
+    struc1 = convert_modset_to_struc(mset)
+    if doreform:
+        forces, pos_err = simulate(struc1, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_reform".format(test_id))
+    else:
+        forces, pos_err = simulate(struc1, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
+    return [forces, pos_err, mset.pi]
 
 if __name__ == '__main__':
     import modquad_sched_interface.waypt_gen as waypt_gen
     import modquad_sched_interface.structure_gen as structure_gen
     import sys
     print("starting simulation")
-    #mset = structure_gen.square(2)
     results = test_shape_with_waypts(
                        #structure_gen.fwd_ushape(3, 2),
-                       structure_gen.zero(3, 3), 
-                       #structure_gen.square(2), 
-                       waypt_gen.line([0,0,0], [15,15,15]), 
+                       structure_gen.plus(4, 4), 
+                       #structure_gen.square(3), #waypt_gen.line([0,0,0], [15,15,1]), 
                        #waypt_gen.rect(10,10),
-                       #waypt_gen.zigzag_xy(10,5),
-                       #waypt_gen.spiral(3,3,3,2),
-                       speed=0.55, test_id="motorsat2_rect10x10_4x4full")
+                       #waypt_gen.zigzag_xy(30,10, num_osc=3),
+                       waypt_gen.spiral(5,5,5,2),
+                       speed=1.25, test_id="Spiral5x5x5x2_4x4plus_rand_", doreform=True, max_fault=4)
+    print("Force used: {}".format(results[0]))
+    print("RMSE Position Error: {}".format(np.mean(results[1])))
+    print("Structure Used: \n{}".format(results[2]))
+    #print("Faults: {}".format(results[3]))

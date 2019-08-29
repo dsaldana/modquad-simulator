@@ -54,12 +54,10 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
     alphaset = 0.8
     ax = fig2.add_subplot(1,1,1, projection='3d')
     ax.plot(traj_vars.waypts[:,0], traj_vars.waypts[:,1], traj_vars.waypts[:,2], zdir='z', color='b', linewidth=lw)
-    #ax.plot([0, 1],[0, 1], [0, 1], zdir='z', color='k')
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     ax.set_zlim(zmin, zmax)
-    #plt.ion()
-    #plt.show()
+
     # For every time step
     ind = 0
     for t in np.arange(0, overtime * tmax, t_step):
@@ -89,7 +87,7 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
         #ax.scatter(state_vector[0], state_vector[1], state_vector[2], zdir='z', color='r', linewidth=lw, marker='.')
         #plt.draw()
         #plt.pause(0.010)
-        ind += 1
+        ind += 1.0
     pos_err_log /= ind
     pos_err_log = np.sqrt(pos_err_log)
 
@@ -107,8 +105,10 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
     plt.savefig("figs/3d_{}.pdf".format(filesuffix))
     plt.sca(fig.gca())
 
+
+    waypt_time_step = 1.0
     tstate = np.arange(0, overtime * tmax, t_step)
-    twaypt = np.arange(0, tmax + 0.5, 0.5)
+    twaypt = np.arange(0, tmax + waypt_time_step, waypt_time_step)
 
     # Generate legend
     legend_vals = ["Actual path", "Desired path"]
@@ -152,8 +152,9 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
     plt.subplot(4,1,figind+3)
     plt.xlabel("Time (sec)")
     plt.ylabel("Force\n(N)", size=ylabelsize)
-    forces_log = forces_log[5:]
-    plt.plot(tstate[5:], np.sum(np.array(forces_log) ** 2, axis=1), color='r', linewidth=lw)
+    #forces_log = forces_log[5:]
+    #plt.plot(tstate[5:], np.sum(np.array(forces_log) ** 2, axis=1), color='r', linewidth=lw)
+    plt.plot(tstate[5:], np.array(forces_log[5:]) ** 2, color='r', linewidth=lw)
     plt.gca().set_ylim(0, 0.75)
     plt.grid()
     #strftime("%Y-%m-%d_%H:%M:%S", localtime()), 
@@ -181,25 +182,27 @@ def circ_traj_test():
 
 def test_shape_with_waypts(mset, wayptset, speed=1, test_id=""):
     from modquad_sched_interface.interface import convert_modset_to_struc
-    from scheduler.scheduler.modset import modset
+    from compiled_scheduler.modset import modset
     from scheduler.gsolver import gsolve
     trajectory_function = min_snap_trajectory
-    traj_vars = trajectory_function(0, speed, none, wayptset)
+    traj_vars = trajectory_function(0, speed, None, wayptset)
 
     # run set 1
+    mset.fault_rotor(5,0)
+    mset.fault_rotor(5,1)
+    mset.fault_rotor(5,2)
+    mset.fault_rotor(5,3)
     gsolve(mset, waypts=traj_vars.waypts)
-    mset.fault_rotor(0,0)
-    mset.fault_rotor(0,1)
-    #mset.fault_rotor(0,2)
-    mset.fault_rotor(2,3)
     struc1 = convert_modset_to_struc(mset)
     forces1, pos_err1 = simulate(struc1, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
 
     tmp = copy.deepcopy(mset)
-    #tmp.fault_rotor(2, 3)
     gsolve(tmp, waypts=traj_vars.waypts)
     struc2 = convert_modset_to_struc(tmp)
     forces2, pos_err2 = simulate(struc2, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_reform".format(test_id))
+    print("Compare assignments")
+    print(mset.pi)
+    print(tmp.pi)
     return [forces1, forces2, pos_err1, pos_err2]
 
 if __name__ == '__main__':
@@ -209,15 +212,15 @@ if __name__ == '__main__':
     forces = []
     pos_err = []
     print(waypt_gen.zigzag_xy(3,3))
-    for i in range(5,  6, 2):
+    for i in range(5, 6, 2):
         results = test_shape_with_waypts(
                            #structure_gen.zero(3, 3), 
-                           structure_gen.square(4), 
-                           #waypt_gen.line([0,0,0], [i,i,i]), 
-                           waypt_gen.rect(10,10),
-                           #waypt_gen.zigzag_xy(10,5),
-                           #waypt_gen.spiral(i,i,i,2),
-                           speed=1.25, test_id="motorsat2_rect10x10_4x4full")
+                           structure_gen.square(3), 
+                           waypt_gen.line([0,0,0], [15,15,1]), 
+                           #waypt_gen.rect(10,50),
+                           #waypt_gen.zigzag_xy(15,5,3),
+                           #waypt_gen.spiral(5,5,7.5,3),
+                           speed=1.25, test_id="line55x55x1_3x3")
         forces.append(results[0:2])
         pos_err.append(results[2:])
     for f in forces:

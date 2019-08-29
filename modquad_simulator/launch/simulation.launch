@@ -11,7 +11,7 @@
         <arg name="init_y" default="0.0"/>
 
 
-        <arg name="color_r" default="1.0"/>
+        <arg name="color_r" default="0.0"/>
         <arg name="color_g" default="0.0"/>
         <arg name="color_b" default="0.0"/>
     </include>
@@ -22,9 +22,9 @@
         <arg name="init_y" default="0.0"/>
 
 
-        <arg name="color_r" default="1.0"/>
+        <arg name="color_r" default="0.0"/>
         <arg name="color_g" default="0.0"/>
-        <arg name="color_b" default="0.0"/>
+        <arg name="color_b" default="1.0"/>
     </include>
     <include file="$(arg launch_path)/modquad.launch"> 
         <arg name="model" value="modquad03"/> 
@@ -33,8 +33,8 @@
         <arg name="init_y" default="1.0"/> 
 
  
-        <arg name="color_r" default="1.0"/>
-        <arg name="color_g" default="0.0"/>
+        <arg name="color_r" default="0.0"/>
+        <arg name="color_g" default="1.0"/>
         <arg name="color_b" default="0.0"/>
     </include>
 
@@ -45,9 +45,9 @@
         <arg name="init_y" default="1.0"/> 
  
  
-        <arg name="color_r" default="1.0"/> 
-        <arg name="color_g" default="0.0"/> 
-        <arg name="color_b" default="0.0"/> 
+        <arg name="color_r" default="0.0"/> 
+        <arg name="color_g" default="1.0"/> 
+        <arg name="color_b" default="1.0"/> 
     </include>
     <include file="$(arg launch_path)/modquad.launch"> 
         <arg name="model" value="modquad05"/> 
@@ -69,7 +69,7 @@
  
         <arg name="color_r" default="1.0"/> 
         <arg name="color_g" default="0.0"/> 
-        <arg name="color_b" default="0.0"/> 
+        <arg name="color_b" default="1.0"/> 
     </include>
     <include file="$(arg launch_path)/modquad.launch"> 
         <arg name="model" value="modquad07"/> 
@@ -79,7 +79,7 @@
  
  
         <arg name="color_r" default="1.0"/> 
-        <arg name="color_g" default="0.0"/> 
+        <arg name="color_g" default="1.0"/> 
         <arg name="color_b" default="0.0"/> 
     </include>
     <include file="$(arg launch_path)/modquad.launch"> 
@@ -90,10 +90,10 @@
  
  
         <arg name="color_r" default="1.0"/> 
-        <arg name="color_g" default="0.0"/> 
-        <arg name="color_b" default="0.0"/> 
+        <arg name="color_g" default="1.0"/> 
+        <arg name="color_b" default="1.0"/> 
     </include>
-<!--    <include file="$(arg launch_path)/modquad.launch"> 
+    <include file="$(arg launch_path)/modquad.launch"> 
         <arg name="model" value="modquad09"/> 
  
         <arg name="init_x" default="0.0"/> 
@@ -104,6 +104,7 @@
         <arg name="color_g" default="0.0"/> 
         <arg name="color_b" default="0.0"/> 
     </include>
+<!--
     <include file="$(arg launch_path)/modquad.launch"> 
         <arg name="model" value="modquad10"/> 
  

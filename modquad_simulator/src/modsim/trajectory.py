@@ -117,16 +117,16 @@ def _min_snap_init(waypts, speed=1):
     #plt.plot(waypts[:, 0], waypts[:, 1])
 
     # Spline the path
-    tstep = 0.5
+    tstep = 1.0
     #print(times)
     #print(waypts[:,0])
     newtimes = np.arange(0,t_max+tstep,tstep)
 
-    print("tmax = {}".format(t_max))
-    print("dist = {}".format(totaldist))
-    print("speed = {}".format(speed))
-    print(newtimes)
-    print(np.transpose(waypts))
+    #print("tmax = {}".format(t_max))
+    #print("dist = {}".format(totaldist))
+    #print("speed = {}".format(speed))
+    #print(newtimes)
+    #print(np.transpose(waypts))
 
     xq = interp.barycentric_interpolate(times, waypts[:,0], newtimes)
     yq = interp.barycentric_interpolate(times, waypts[:,1], newtimes)
@@ -142,7 +142,7 @@ def _min_snap_init(waypts, speed=1):
     #print(yq)
     #print(zq)
     #print('--')
-    print(np.transpose(waypts))
+    #print(np.transpose(waypts))
     #plt.plot(waypts[:, 0], waypts[:, 1])
     #plt.show()
 
@@ -246,17 +246,17 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
     A = [] # to preserve scope
     if ret_snap:
         A = np.array([
-                [      t ** 7,       t ** 6,       t ** 5,      t ** 4,     t ** 3,     t ** 2, t ** 1, t ** 0],
-                [  7 * t ** 6,   6 * t ** 5,   5 * t ** 4,  4 * t ** 3, 3 * t ** 2, 2 * t     , 1     , 0     ],
-                [ 42 * t ** 5,  30 * t ** 4,  20 * t ** 3, 12 * t ** 2, 6 * t     , 2         , 0     , 0     ],
-                [210 * t ** 4, 120 * t ** 3,  60 * t ** 2, 24 * t     , 6         , 0         , 0     , 0     ],
-                [840 * t ** 3, 360 * t ** 2, 120 * t     , 24         , 0         , 0         , 0     , 0     ]
+                [      t ** 7,       t ** 6,       t ** 5,      t ** 4,     t ** 3,     t ** 2, t ** 1, 1 ],
+                [  7 * t ** 6,   6 * t ** 5,   5 * t ** 4,  4 * t ** 3, 3 * t ** 2, 2 * t     , 1     , 0 ],
+                [ 42 * t ** 5,  30 * t ** 4,  20 * t ** 3, 12 * t ** 2, 6 * t     , 2         , 0     , 0 ],
+                [210 * t ** 4, 120 * t ** 3,  60 * t ** 2, 24 * t     , 6         , 0         , 0     , 0 ],
+                [840 * t ** 3, 360 * t ** 2, 120 * t     , 24         , 0         , 0         , 0     , 0 ]
             ])
     else:
         A = np.array([
-                [     t ** 7,       t ** 6,      t ** 5,      t ** 4,     t ** 3,     t ** 2, t ** 1, t ** 0],
-                [ 7 * t ** 6,   6 * t ** 5,  5 * t ** 4,  4 * t ** 3, 3 * t ** 2, 2 * t     , 1     , 0     ],
-                [42 * t ** 5,  30 * t ** 4, 20 * t ** 3, 12 * t ** 2, 6 * t     , 2         , 0     , 0     ]
+                [     t ** 7,       t ** 6,      t ** 5,      t ** 4,     t ** 3,     t ** 2, t ** 1, 1 ],
+                [ 7 * t ** 6,   6 * t ** 5,  5 * t ** 4,  4 * t ** 3, 3 * t ** 2, 2 * t     , 1     , 0 ],
+                [42 * t ** 5,  30 * t ** 4, 20 * t ** 3, 12 * t ** 2, 6 * t     , 2         , 0     , 0 ]
             ])
     coeffs = np.squeeze(np.stack([traj_vars.cx[cind[0]:cind[-1]+1] , 
                                   traj_vars.cy[cind[0]:cind[-1]+1] , 
