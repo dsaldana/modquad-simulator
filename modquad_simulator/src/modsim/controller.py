@@ -102,8 +102,20 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     rotor_forces = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
 
     # Failing motors -- IDs are 1-indexed, but rotor pos are 0-indexed
-    for mf in structure.motor_failure:
-        rotor_forces[4 * (mf[0]-1) + mf[1]] *= 0.0
+    for i, mf in enumerate(sorted(structure.motor_failure)):
+        try:
+            rotor_forces[4 * i + mf[1]] *= 0.0
+        except:
+            print(structure.ids)
+            print(structure.xx)
+            print(structure.yy)
+            print(structure.motor_failure)
+            print(np.array(A))
+            print(np.array([F,M[0],M[1]]))
+            print(rotor_forces)
+            import sys
+            sys.exit(-1)
+
 
     # Motor saturation
     if motor_sat:

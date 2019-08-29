@@ -26,6 +26,12 @@ class Structure:
         np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
         ##
         self.n = len(self.ids)  # Number of modules
+        if self.n == 0:
+            import sys
+            print('-----')
+            raise ValueError("ERROR: Cannot make structure of 0 modules")
+            print('-----')
+            sys.exit(-1)
         #print(self.xx)
         #print(self.yy)
         #print(np.mean(self.xx))
@@ -37,14 +43,26 @@ class Structure:
 
         # Equation (4) of the Modquad paper
         # FIXME inertia with parallel axis theorem is not working. Temporary multiplied by zero
-        self.inertia_tensor = 0.5 * self.n * np.array(params.I) + 0.01 * params.mass * np.diag([
+        self.inertia_tensor = 0.5 * self.n * np.array(params.I) + 0.00 * params.mass * np.diag([
             np.sum(self.yy ** 2),
             np.sum(self.xx ** 2),
             np.sum(self.yy ** 2) + np.sum(self.xx ** 2)
         ])
 
         # self.inertia_tensor = np.array(params.I)
-        self.inverse_inertia = np.linalg.inv(self.inertia_tensor)
+        try:
+            self.inverse_inertia = np.linalg.inv(self.inertia_tensor)
+        except:
+            import sys
+            print("Inverse inertia calculation error: {}".format(sys.exc_info()[0]))
+            print(self.inertia_tensor)
+            print("There are {} robots in structure".format(self.n))
+            print("Inertia param is {}".format(params.I))
+            print(self.ids)
+            print(self.xx)
+            print(self.yy)
+            print(self.motor_failure)
+            sys.exit(-1)
 
     def gen_hashstring(self):
         """ 
@@ -74,7 +92,7 @@ class Structure:
                         ''.join('%d' % int((int(mod[7:]), rot) not in self.motor_failure) 
                         for rot in range(4)) 
                     for mod in sorted(self.ids))
-        print(pi)
+        #print(pi)
         #print(self.ids)
         #print(self.xx)
         #print(self.yy)

@@ -36,7 +36,8 @@ class DisassemblyManager:
         rospy.set_param("opmode", "disassemble")
         self.mat = convert_struc_to_mat(structure.ids, structure.xx, structure.yy)
         self.next_disassemblies = {}
-        self.time_for_disassembly = start_time + 5 # 5 seconds per layer
+        self.reserve_time = 3.0
+        self.time_for_disassembly = start_time + self.reserve_time # 1 seconds per layer
         self.trajectory_function = traj_func
 
         self.plan_next_disassembly_set(struc_mgr)
@@ -55,11 +56,16 @@ class DisassemblyManager:
             #print(hashstring)
             if hashstring in self.reconf_map:
                 self.next_disassemblies[s.gen_hashstring()] = self.reconf_map[s.gen_hashstring()]
-            else:
-                self.next_disassemblies[s.gen_hashstring()] = None
-        print("Next disassemblies:")
-        for d in self.next_disassemblies:
-            print("\t{} disassemble at {}".format(d, self.next_disassemblies[d]))
+            #else:
+            #    #self.next_disassemblies[s.gen_hashstring()] = None
+        #print("Next disassemblies:")
+        #for d in self.next_disassemblies:
+        #    print("\t{} disassemble at {}".format(d, self.next_disassemblies[d]))
+
+        if len(self.next_disassemblies) == 0:
+            rospy.set_param("opmode", "normal")
+            print("Disassembly complete, returning to normal op mode")
+            return
 
         # Get positions of all current structures
         svecs = struc_mgr.get_states()
@@ -67,7 +73,16 @@ class DisassemblyManager:
 
         # Plan locations for all structures + the two new ones
         new_locs = [ [ [0.0,0.0,0.0], [0.0,0.0,0.0] ] for _ in range(len(svecs))]
-        for struc,dis,new_loc,state_vec in zip(struc_mgr.strucs, self.next_disassemblies, new_locs, svecs):
+        for struc,new_loc,state_vec in zip(struc_mgr.strucs, new_locs, svecs):
+            dis = struc.gen_hashstring()
+            if dis not in self.next_disassemblies:
+                continue
+            #print("\tNext disassemblies:")
+            #for d in self.next_disassemblies:
+            #    print("\t\t{} disassemble at {}".format(d, self.next_disassemblies[d]))
+            #print("\tCurrent structure is {}".format(struc.gen_hashstring()))
+            #print("\tCurrent IDs are {}".format(struc.ids))
+            #print("\tCurrent value dis = {}".format(dis))
             cur_loc = state_vec[:3]
             dis_loc = self.next_disassemblies[dis]
             #print(dis)
@@ -84,8 +99,9 @@ class DisassemblyManager:
             split = rospy.ServiceProxy("SplitStructure", SplitStructure)
             split_dim, breakline, split_ind = dis_loc[0][0], dis_loc[0][1], dis_loc[0][2], 
             inp = split_srv_input_format(struc, int(split_dim=='y'), breakline, split_ind)
-            for i,val in enumerate(inp):
-                print(i, val)
+            #print(dis_loc)
+            #for i,val in enumerate(inp):
+            #    print(i, val)
             ret = split(inp[0], inp[1], inp[2], inp[3], inp[4], inp[5], inp[6], inp[7])
 
             # Generate the new structures post-split (i.e. generate the actual objects)
@@ -106,6 +122,13 @@ class DisassemblyManager:
             # Update the structure manager
             struc_mgr.split_struc(struc, new_strucs, trajs, state_vecs)
 
+            # Print new strucs
+            print("Strucs as they now stand:")
+            for s in struc_mgr.strucs:
+                print("\t{}\t{}".format(s.ids, s.gen_hashstring()))
+            print('##############')
     def take_step(self, struc_mgr, t):
-        if t > self.time_for_disassembly:
+        if t >= self.time_for_disassembly:
             self.plan_next_disassembly_set(struc_mgr)
+            self.time_for_disassembly = t + self.reserve_time
+            print("Splits at t = {}".format(t))
