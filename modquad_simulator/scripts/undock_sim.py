@@ -126,7 +126,7 @@ def simulate(struc, newstruc, reconf_map, trajectory_function, t_step=0.01, spee
     # Don't start with a disassembler object
     disassembler = None
     
-    while not rospy.is_shutdown():
+    while not rospy.is_shutdown() and t < 6.0:
         rate.sleep()
         t += 1. / freq
 
@@ -139,12 +139,13 @@ def simulate(struc, newstruc, reconf_map, trajectory_function, t_step=0.01, spee
         struc_mgr.control_step(t, trajectory_function, speed, 
                 odom_publishers, tf_broadcaster)
 
-        if t > 5.0 and not undocked: # Split the structure
+        if t > 2.0 and not undocked: # Split the structure
             rospy.wait_for_service('SplitStructure')
             print("Undocking commencing")
             disassembler = DisassemblyManager(struc_mgr.strucs[0], reconf_map, t, struc_mgr, trajectory_function)
             t = 0.0
             undocked = True
+    struc_mgr.make_plots()
 
 def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, breakline=1, split_ind=0):
     # Import here in case want to run w/o mqscheduler package

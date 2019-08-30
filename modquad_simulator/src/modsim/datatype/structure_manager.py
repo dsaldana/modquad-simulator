@@ -6,6 +6,9 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from numpy import copy
 import networkx as nx
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import copy
 
 from modsim.controller import position_controller, modquad_torque_control
 from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, \
@@ -18,7 +21,7 @@ from modsim.attitude import attitude_controller
 from modsim.datatype.structure import Structure
 
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
-    publish_transform_stamped_relative, publish_point
+    publish_transform_stamped_relative
 
 from modsim.util.state import init_state, state_to_quadrotor
 from modsim.util.undocking import gen_strucs_from_split, split_srv_input_format
@@ -63,13 +66,15 @@ class StructureManager:
         self.trajs = traj_vars
         self.demo_trajectory = rospy.get_param('~demo_trajectory', True)
         self.freq = rospy.get_param("freq", 100)
+        self.state_vecs_log = [[] for _ in range(len(self.strucs))]
+        self.desired_states_log = [[] for _ in range(len(self.strucs))]
 
     def control_step(self, t, trajectory_function, speed, odom_publishers, tf_broadcaster):
         global thrust_newtons, roll, pitch, yaw
 
         # NOTE: for some reason loop by value over a zip() does not work
         for i, _ in enumerate(self.strucs):
-            if i < 1: continue
+            #if i < 1: continue
 
             # Publish odometry
             publish_structure_odometry(self.strucs[i], self.state_vecs[i], \
@@ -80,6 +85,14 @@ class StructureManager:
                 # Overwrite the control input with the demo trajectory
                 [thrust_newtons, roll, pitch, yaw] = position_controller(
                             self.state_vecs[i], desired_state)
+                try:
+                    self.desired_states_log[i].append(desired_state[0])
+                except:
+                    print(i)
+                    print(len(self.desired_states_log))
+                    print(self.desired_states_log)
+                    sys.exit(-1)
+
 
             # Control output based on crazyflie input
             F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), 
@@ -90,6 +103,7 @@ class StructureManager:
                             F_single, M_single, self.strucs[i], motor_sat=True)
 
             # Simulate
+            self.state_vecs_log[i].append(self.state_vecs[i][:3])
             self.state_vecs[i] = simulation_step(self.strucs[i], self.state_vecs[i], 
                             F_structure, M_structure, 1. / self.freq)
         
@@ -111,11 +125,18 @@ class StructureManager:
         del self.strucs[replace_ind]
         del self.trajs[replace_ind]
         del self.state_vecs[replace_ind]
+        org_des_stae = self.desired_states_log[replace_ind]
+        org_stt_vecs = self.state_vecs_log[replace_ind]
+        del self.desired_states_log[replace_ind]
+        del self.state_vecs_log[replace_ind]
 
         # Add the new structures and assoc. vars to class instance vars
         self.strucs = self.strucs + struclist
         self.trajs = self.trajs + trajlist
         self.state_vecs = self.state_vecs + statelist
+
+        self.desired_states_log += [copy.copy(org_des_stae), copy.copy(org_des_stae)]
+        self.state_vecs_log += [copy.copy(org_stt_vecs), copy.copy(org_stt_vecs)]
 
     # Control input callback
     # Called from the main script file
@@ -135,3 +156,34 @@ class StructureManager:
             F_g = 0
     
         thrust_newtons = 9.81 * F_g / 1000.  # Force in Newtons
+
+    def make_plots(self):
+        fig = plt.figure()
+        for i,_ in enumerate(self.strucs):
+            sveclog = np.array(self.state_vecs_log[i])
+            dstatelog = np.array(self.desired_states_log[i])
+            plt.subplot(len(self.strucs), 1, i+1)
+            plt.plot(dstatelog[:, 0], 'b')
+            plt.plot(sveclog[:, 0], 'r')
+            plt.legend(['desired', 'actual'])
+            plt.ylabel('X')
+        fig2 = plt.figure()
+        for i,_ in enumerate(self.strucs):
+            sveclog = np.array(self.state_vecs_log[i])
+            dstatelog = np.array(self.desired_states_log[i])
+            plt.subplot(len(self.strucs), 1, i+1)
+            plt.plot(dstatelog[:, 1], 'b')
+            plt.plot(sveclog[:, 1], 'r')
+            plt.legend(['desired', 'actual'])
+            plt.ylabel('Y')
+        fig3 = plt.figure()
+        for i,_ in enumerate(self.strucs):
+            sveclog = np.array(self.state_vecs_log[i])
+            dstatelog = np.array(self.desired_states_log[i])
+            plt.subplot(len(self.strucs), 1, i+1)
+            plt.plot(dstatelog[:, 2], 'b')
+            plt.plot(sveclog[:, 2], 'r')
+            plt.legend(['desired', 'actual'])
+            plt.ylabel('Z')
+        plt.show()
+
