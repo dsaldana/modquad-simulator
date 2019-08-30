@@ -7,6 +7,7 @@ import rospy
 import tf2_ros
 import numpy as np
 import networkx as nc
+import copy
 
 # Modquad modules
 from modsim import params
@@ -36,40 +37,36 @@ class DisassemblyManager:
         rospy.set_param("opmode", "disassemble")
         self.mat = convert_struc_to_mat(structure.ids, structure.xx, structure.yy)
         self.next_disassemblies = {}
-        self.reserve_time = 3.0
+        self.reserve_time = 5.0
         self.time_for_disassembly = start_time + self.reserve_time # 1 seconds per layer
         self.trajectory_function = traj_func
 
-        self.plan_next_disassembly_set(struc_mgr)
-
     def plan_next_disassembly_set(self, struc_mgr):
+        """
+        Split all structures we currently have if they need to be split as per reconfigurability
+        Reconfibgurability means can all modules be placed into the new desired location
+        Note we currently do not fully do this, we simply follow the map
+        """
         print("===================================================")
         speed = rospy.get_param('structure_speed', 1.0)
         self.next_disassemblies = {}
 
-        #print("____ BEG RECONF MAP ____")
-        #for entry in self.reconf_map:
-        #    print(entry)
-        #print("____ END RECONF MAP ____")
         for s in struc_mgr.strucs:
             hashstring = s.gen_hashstring()
-            #print(hashstring)
             if hashstring in self.reconf_map:
                 self.next_disassemblies[s.gen_hashstring()] = self.reconf_map[s.gen_hashstring()]
-            #else:
-            #    #self.next_disassemblies[s.gen_hashstring()] = None
-        #print("Next disassemblies:")
-        #for d in self.next_disassemblies:
-        #    print("\t{} disassemble at {}".format(d, self.next_disassemblies[d]))
 
         if len(self.next_disassemblies) == 0:
             rospy.set_param("opmode", "normal")
+            trajs = []
+            for i,s in enumerate(struc_mgr.strucs):
+                trajs.append(self.trajectory_function(0, speed, None, waypt_gen.line(struc_mgr.state_vecs[i][:3], [0.0,0.0,5.0])))
+                struc_mgr.trajs = trajs
             print("Disassembly complete, returning to normal op mode")
             return
 
         # Get positions of all current structures
         svecs = struc_mgr.get_states()
-        #print("Cur Struc states: {}".format(svecs))
 
         # Plan locations for all structures + the two new ones
         new_locs = [ [ [0.0,0.0,0.0], [0.0,0.0,0.0] ] for _ in range(len(svecs))]
@@ -77,47 +74,44 @@ class DisassemblyManager:
             dis = struc.gen_hashstring()
             if dis not in self.next_disassemblies:
                 continue
-            #print("\tNext disassemblies:")
-            #for d in self.next_disassemblies:
-            #    print("\t\t{} disassemble at {}".format(d, self.next_disassemblies[d]))
-            #print("\tCurrent structure is {}".format(struc.gen_hashstring()))
-            #print("\tCurrent IDs are {}".format(struc.ids))
-            #print("\tCurrent value dis = {}".format(dis))
             cur_loc = state_vec[:3]
             dis_loc = self.next_disassemblies[dis]
-            #print(dis)
-            #print(dis_loc, new_loc, cur_loc)
+            cur_locp= [[], []]
+
+            # Based on direction of disassembly, generate the new trajectories where 
+            # generated substructures will be positioned
             if dis_loc[0][0] == 'x':
-                new_loc[0] = [cur_loc[0], cur_loc[1]-0.25, cur_loc[2]]
-                new_loc[1] = [cur_loc[0], cur_loc[1]+0.25, cur_loc[2]]
+                new_loc[0] = [cur_loc[0]-1.5, cur_loc[1], cur_loc[2]]
+                new_loc[1] = [cur_loc[0]+1.5, cur_loc[1], cur_loc[2]]
+                cur_locp[0]= [cur_loc[0], cur_loc[1]-params.cage_width * dis_loc[0][1], cur_loc[2]]
+                cur_locp[1]= [cur_loc[0], cur_loc[1]+params.cage_width * dis_loc[0][1], cur_loc[2]]
             else: # y disassembly
-                new_loc[0] = [cur_loc[0]-0.25, cur_loc[1], cur_loc[2]]
-                new_loc[1] = [cur_loc[0]+0.25, cur_loc[1], cur_loc[2]]
-            #print("After split locs: {}".format(new_locs))
+                new_loc[0] = [cur_loc[0], cur_loc[1]-1.5, cur_loc[2]]
+                new_loc[1] = [cur_loc[0], cur_loc[1]+1.5, cur_loc[2]]
+                cur_locp[0]= [cur_loc[0]-params.cage_width * dis_loc[0][1], cur_loc[1], cur_loc[2]]
+                cur_locp[1]= [cur_loc[0]+params.cage_width * dis_loc[0][1], cur_loc[1], cur_loc[2]]
+            print("New goals: {}".format(new_loc))
 
             # Split the structure physically
             split = rospy.ServiceProxy("SplitStructure", SplitStructure)
             split_dim, breakline, split_ind = dis_loc[0][0], dis_loc[0][1], dis_loc[0][2], 
             inp = split_srv_input_format(struc, int(split_dim=='y'), breakline, split_ind)
-            #print(dis_loc)
-            #for i,val in enumerate(inp):
-            #    print(i, val)
             ret = split(inp[0], inp[1], inp[2], inp[3], inp[4], inp[5], inp[6], inp[7])
 
             # Generate the new structures post-split (i.e. generate the actual objects)
             new_strucs = gen_strucs_from_split(ret)
-            #for s in new_strucs:
-            #    print("Printing a new struc")
-            #    print(s.ids)
-            #    print(s.xx)
-            #    print(s.yy)
-            #    print(s.motor_failure)
 
             # Generate trajectories for new structures
-            traj_vars1 = self.trajectory_function(0, speed, None, waypt_gen.line(cur_loc, new_loc[0]))
-            traj_vars2 = self.trajectory_function(0, speed, None, waypt_gen.line(cur_loc, new_loc[1]))
+            traj_vars1 = self.trajectory_function(0, speed, None, waypt_gen.line(cur_locp[0], new_loc[0]))
+            traj_vars2 = self.trajectory_function(0, speed, None, waypt_gen.line(cur_locp[1], new_loc[1]))
             trajs = [traj_vars1, traj_vars2]
-            state_vecs = [state_vec, state_vec]
+
+            # Generate state_vecs offset from orig. center of mass based on the split
+            state_vec1 = copy.deepcopy(state_vec)
+            state_vec2 = copy.deepcopy(state_vec)
+            state_vec1[:3] = cur_locp[0]
+            state_vec2[:3] = cur_locp[1]
+            state_vecs = [state_vec1, state_vec2]
 
             # Update the structure manager
             struc_mgr.split_struc(struc, new_strucs, trajs, state_vecs)
@@ -127,8 +121,14 @@ class DisassemblyManager:
             for s in struc_mgr.strucs:
                 print("\t{}\t{}".format(s.ids, s.gen_hashstring()))
             print('##############')
+
     def take_step(self, struc_mgr, t):
+        """
+        Handles when to perform the next split
+        """
         if t >= self.time_for_disassembly:
             self.plan_next_disassembly_set(struc_mgr)
-            self.time_for_disassembly = t + self.reserve_time
+            self.time_for_disassembly = self.reserve_time
             print("Splits at t = {}".format(t))
+            return True
+        return False
