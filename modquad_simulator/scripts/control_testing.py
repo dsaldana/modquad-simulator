@@ -175,7 +175,7 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
 if __name__ == '__main__':
     print("Starting Control Testing Simulation")
     test_undock_along_path(
-                       #structure_gen.zero(3, 3), 
-                       structure_gen.square(1),
+                       structure_gen.zero(2, 1), 
+                       #structure_gen.square(1),
                        waypt_gen.line([0,0,0,],[1,2,3]), 
                        speed=0.55, test_id="control_test")

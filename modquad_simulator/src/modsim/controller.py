@@ -33,7 +33,7 @@ def position_controller(structure, desired_state):
     g = params.grav
 
     # Multi mod control params
-    if num_mod > 1:
+    if num_mod > 2:
         xyp =   5.0 #355.0
         xyd =  90.0 #255.0
         xyi =   2.5 #145.0
@@ -41,7 +41,7 @@ def position_controller(structure, desired_state):
         zd  =  18.0 #  0.0
         zi  =   2.5 # 45.0
     # Single mod control params
-    elif num_mod == 1:
+    else:
         xyp =  57.0
         xyd =  99.0
         xyi =   0.1 

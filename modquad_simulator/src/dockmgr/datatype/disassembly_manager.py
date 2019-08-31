@@ -57,9 +57,9 @@ class DisassemblyManager:
                 self.next_disassemblies[hashstring] = self.reconf_map[hashstring]
 
         if len(self.next_disassemblies) == 0:
-            for i, structure in enumerate(struc_mgr.strucs):
-                structure.traj_vars = self.trajectory_function(0, speed, None, 
-                        waypt_gen.line(structure.state_vector[:3], [i, i, 3.0]))
+            #for i, structure in enumerate(struc_mgr.strucs):
+            #    structure.traj_vars = self.trajectory_function(0, speed, None, 
+            #            waypt_gen.line(structure.state_vector[:3], [i, i, 3.0]))
             print("Disassembly complete, returning to normal op mode")
             rospy.set_param("opmode", "normal")
             return
