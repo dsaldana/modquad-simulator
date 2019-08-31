@@ -40,72 +40,73 @@ Uses ComponentManager to manage the structures that are available in
 whatever the current simulation happens to be
 """
 
-thrust_newtons, roll, pitch, yaw = 0.0, 0.0, 0.0, 0.0
+#thrust_newtons, roll, pitch, yaw = 0.0, 0.0, 0.0, 0.0
 
-def publish_for_attached_mods(robot_id, structure_x, structure_y, xx, yy, main_id, odom_publishers, tf_broadcaster):
-    publish_odom_relative(structure_x - xx[0], structure_y - yy[0], robot_id, main_id, odom_publishers[robot_id])
-    publish_transform_stamped_relative(robot_id, main_id, structure_x - xx[0], structure_y - yy[0], tf_broadcaster)
-
-def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
-    global thrust_newtons, roll, pitch, yaw
-    ids, xx, yy = structure.ids, structure.xx, structure.yy
-
-    # publish main robot
-    main_id = ids[0]
-    publish_odom(x, odom_publishers[main_id])
-    publish_transform_stamped(main_id, x, tf_broadcaster)
-
-    # show the other robots
-    [publish_for_attached_mods(robot_id, structure_x, structure_y, xx, yy, main_id, odom_publishers, tf_broadcaster) 
-            for robot_id, structure_x, structure_y in zip(ids, xx, yy)[1:]]
+#def publish_for_attached_mods(robot_id, structure_x, structure_y, xx, yy, main_id, odom_publishers, tf_broadcaster):
+#    publish_odom_relative(structure_x - xx[0], structure_y - yy[0], robot_id, main_id, odom_publishers[robot_id])
+#    publish_transform_stamped_relative(robot_id, main_id, structure_x - xx[0], structure_y - yy[0], tf_broadcaster)
+#
+#def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
+#    #global thrust_newtons, roll, pitch, yaw
+#    ids, xx, yy = structure.ids, structure.xx, structure.yy
+#
+#    # publish main robot
+#    if len(xx) == 1:
+#        main_id = ids
+#    else:
+#        main_id = ids[0]
+#    publish_odom(x, odom_publishers[main_id])
+#    publish_transform_stamped(main_id, x, tf_broadcaster)
+#
+#    # show the other robots
+#    [publish_for_attached_mods(robot_id, structure_x, structure_y, xx, yy, 
+#        main_id, odom_publishers, tf_broadcaster) 
+#        for robot_id, structure_x, structure_y in zip(ids, xx, yy)[1:]]
 
 class StructureManager:
-    def __init__(self, struclist, state_vecs, traj_vars):
+    def __init__(self, struclist):
         self.strucs = struclist # init based on those passed in
-        self.state_vecs = state_vecs
-        self.trajs = traj_vars
         self.demo_trajectory = rospy.get_param('~demo_trajectory', True)
         self.freq = rospy.get_param("freq", 100)
         self.state_vecs_log = [[] for _ in range(len(self.strucs))]
         self.desired_states_log = [[] for _ in range(len(self.strucs))]
 
-    def control_step(self, t, trajectory_function, speed, odom_publishers, tf_broadcaster):
-        global thrust_newtons, roll, pitch, yaw
+    #def control_step(self, t, trajectory_function, speed, odom_publishers, tf_broadcaster):
+    #    #global thrust_newtons, roll, pitch, yaw
 
-        # NOTE: for some reason loop by value over a zip() does not work
-        for i, _ in enumerate(self.strucs):
-            #if i < 1: continue
+    #    print('-----')
+    #    # NOTE: for some reason loop by value over a zip() does not work
+    #    for i, _ in enumerate(self.strucs):
+    #        #if i < 1: continue
 
-            # Publish odometry
-            publish_structure_odometry(self.strucs[i], self.state_vecs[i], \
-                odom_publishers, tf_broadcaster)
+    #        # Publish odometry
+    #        publish_structure_odometry(self.strucs[i], self.state_vecs[i], \
+    #            odom_publishers, tf_broadcaster)
 
-            if self.demo_trajectory:
-                desired_state = trajectory_function(t, speed, self.trajs[i])
-                # Overwrite the control input with the demo trajectory
-                [thrust_newtons, roll, pitch, yaw] = position_controller(
-                            self.state_vecs[i], desired_state)
-                try:
-                    self.desired_states_log[i].append(desired_state[0])
-                except:
-                    print(i)
-                    print(len(self.desired_states_log))
-                    print(self.desired_states_log)
-                    sys.exit(-1)
+    #        if self.demo_trajectory:
+    #            desired_state = trajectory_function(t, speed, self.trajs[i])
+    #            print("pos[{}] = {}".format(i, desired_state[0]))
+    #            # Overwrite the control input with the demo trajectory
+    #            [thrust_newtons, roll, pitch, yaw] = position_controller(
+    #                        self.state_vecs[i], desired_state)
+    #            self.strucs[i].update_control_params(thrust_newtons, roll, pitch, yaw)
+    #            self.desired_states_log[i].append(desired_state[0])
 
 
-            # Control output based on crazyflie input
-            F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), 
-                                                     self.state_vecs[i])
+    #        # Control output based on crazyflie input
+    #        F_single, M_single = attitude_controller(
+    #                (self.strucs[i].thrust_newtons, self.strucs[i].roll, 
+    #                    self.strucs[i].pitch, self.strucs[i].yaw), 
+    #                self.state_vecs[i])
 
-            # Control of Moments and thrust
-            F_structure, M_structure, rotor_forces = modquad_torque_control(
-                            F_single, M_single, self.strucs[i], motor_sat=True)
+    #        # Control of Moments and thrust
+    #        F_structure, M_structure, rotor_forces = modquad_torque_control(
+    #                        F_single, M_single, self.strucs[i], motor_sat=True)
 
-            # Simulate
-            self.state_vecs_log[i].append(self.state_vecs[i][:3])
-            self.state_vecs[i] = simulation_step(self.strucs[i], self.state_vecs[i], 
-                            F_structure, M_structure, 1. / self.freq)
+    #        # Simulate
+    #        self.state_vecs_log[i].append(self.state_vecs[i][:3])
+    #        self.state_vecs[i] = simulation_step(self.strucs[i], self.state_vecs[i], 
+    #                        F_structure, M_structure, 1. / self.freq)
         
     def get_data_by_ind(self, index):
         if index < 0 or index > len(self.strucs):
@@ -141,49 +142,53 @@ class StructureManager:
     # Control input callback
     # Called from the main script file
     # Unsure if this is needed yet, part of trying to get disassembled structures to work properly
-    def control_input_listener(self, twist_msg):
-        global thrust_newtons, roll, pitch, yaw
-        # For more info, check:
-        # https://github.com/whoenig/crazyflie_ros
-        roll = twist_msg.linear.y
-        pitch = twist_msg.linear.x
-        yaw = twist_msg.angular.z
-        thrust_pwm = twist_msg.linear.z
-    
-        c1, c2, c3 = -0.6709, 0.1932, 13.0652
-        F_g = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
-        if F_g<0:
-            F_g = 0
-    
-        thrust_newtons = 9.81 * F_g / 1000.  # Force in Newtons
+    #def control_input_listener(self, twist_msg):
+    #    #global thrust_newtons, roll, pitch, yaw
+    #    # For more info, check:
+    #    # https://github.com/whoenig/crazyflie_ros
+    #    self.roll = twist_msg.linear.y
+    #    self.pitch = twist_msg.linear.x
+    #    self.yaw = twist_msg.angular.z
+    #    thrust_pwm = twist_msg.linear.z
+    #
+    #    c1, c2, c3 = -0.6709, 0.1932, 13.0652
+    #    F_g = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
+    #    if F_g<0:
+    #        F_g = 0
+    #
+    #    self.thrust_newtons = 9.81 * F_g / 1000.  # Force in Newtons
 
     def make_plots(self):
+        plt.style.use('dark_background')
+        tstep = 1.0 / self.freq
         fig = plt.figure()
+        plt.subplot(len(self.strucs), 1, 1)
+        plt.title('X pos')
         for i,_ in enumerate(self.strucs):
             sveclog = np.array(self.state_vecs_log[i])
             dstatelog = np.array(self.desired_states_log[i])
             plt.subplot(len(self.strucs), 1, i+1)
-            plt.plot(dstatelog[:, 0], 'b')
+            plt.plot(dstatelog[:, 0], 'c')
             plt.plot(sveclog[:, 0], 'r')
-            plt.legend(['desired', 'actual'])
-            plt.ylabel('X')
+        plt.xlabel('Time (sec)')
         fig2 = plt.figure()
+        plt.subplot(len(self.strucs), 1, 1)
+        plt.title('Y pos')
         for i,_ in enumerate(self.strucs):
             sveclog = np.array(self.state_vecs_log[i])
             dstatelog = np.array(self.desired_states_log[i])
             plt.subplot(len(self.strucs), 1, i+1)
-            plt.plot(dstatelog[:, 1], 'b')
+            plt.plot(dstatelog[:, 1], 'c')
             plt.plot(sveclog[:, 1], 'r')
-            plt.legend(['desired', 'actual'])
-            plt.ylabel('Y')
+        plt.xlabel('Time (sec)')
         fig3 = plt.figure()
+        plt.subplot(len(self.strucs), 1, 1)
+        plt.title('Z pos')
         for i,_ in enumerate(self.strucs):
             sveclog = np.array(self.state_vecs_log[i])
             dstatelog = np.array(self.desired_states_log[i])
             plt.subplot(len(self.strucs), 1, i+1)
-            plt.plot(dstatelog[:, 2], 'b')
+            plt.plot(dstatelog[:, 2], 'c')
             plt.plot(sveclog[:, 2], 'r')
-            plt.legend(['desired', 'actual'])
-            plt.ylabel('Z')
+        plt.xlabel('Time (sec)')
         plt.show()
-

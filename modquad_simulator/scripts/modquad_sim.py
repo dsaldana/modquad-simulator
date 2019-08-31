@@ -78,9 +78,12 @@ def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
         publish_odom_relative(structure_x - xx[0], structure_y - yy[0], robot_id, main_id, odom_publishers[robot_id])
         publish_transform_stamped_relative(robot_id, main_id, structure_x - xx[0], structure_y - yy[0], tf_broadcaster)
 
-def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
+def simulate(structure, trajectory_function, 
+        t_step=0.01, speed=1, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix=""):
-    global dislocation_srv, thrust_newtons, roll, pitch, yaw
+    global dislocation_srv 
+    global thrust_newtons, roll, pitch, yaw
+
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
     rids = [robot_id1]#, robot_id2] #[robot_id1, robot_id2, robot_id3, robot_id4]
@@ -129,8 +132,10 @@ def simulate(structure, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, 
     [rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener) for robot_id in rids]
 
     # Odom publisher
-    odom_publishers = {id_robot: rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) for id_robot in
-                       structure.ids}
+    odom_publishers = {id_robot: 
+            rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
+            for id_robot in structure.ids}
+
     # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
 

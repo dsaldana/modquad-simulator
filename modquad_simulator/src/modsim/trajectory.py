@@ -232,6 +232,12 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
         raise ValueError("No trajectory data passed in")
     t_max = traj_vars.total_dist / speed
     if t >= t_max:
+        #pos = traj_vars.waypts[-1,:]
+        #vel = [0.0, 0.0, 0.0]
+        #acc = [0.0, 0.0, 0.0]
+        #yaw = 0
+        #yawdot = 0
+        #return [pos, vel, acc, yaw, yawdot]
         t = t_max # Hover at final spot
     ind = [i for i in range(0, len(traj_vars.times) - 1)
            if t >= traj_vars.times[i] and t < traj_vars.times[i + 1]]
@@ -277,5 +283,6 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
         acc = res[2,:]
         yaw = 0
         yawdot = 0
+        #print("At t = {:03f}, pos = {}".format(t, pos))
         return [pos, vel, acc, yaw, yawdot]
 

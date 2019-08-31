@@ -22,6 +22,12 @@ class Structure:
         self.motor_failure = motor_failure
         self.motor_roll = [[0, 0, 0, 0], [0, 0, 0, 0]]
         self.motor_pitch = [[0, 0, 0, 0], [0, 0, 0, 0]]
+        
+        # Previously global params in modquad_sim.py now held in structure
+        self.thrust_newtons = 0.0
+        self.roll = 0.0
+        self.pitch = 0.0
+        self.yaw = 0.0
 
         np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
         ##
@@ -30,16 +36,12 @@ class Structure:
             import sys
             print('-----')
             raise ValueError("ERROR: Cannot make structure of 0 modules")
-            print('-----')
-            sys.exit(-1)
-        #print(self.xx)
-        #print(self.yy)
-        #print(np.mean(self.xx))
-        #print(np.mean(self.yy))
-        self.xx = np.array(self.xx) - np.average(self.xx)# x-coordinates with respect to the center of mass
-        self.yy = np.array(self.yy) - np.average(self.yy)# y-coordinates with respect to the center of mass
-        #print(self.xx)
-        #print(self.yy)
+
+        # x-coordinates with respect to the center of mass
+        self.xx = np.array(self.xx) - np.average(self.xx)
+
+        # y-coordinates with respect to the center of mass
+        self.yy = np.array(self.yy) - np.average(self.yy)
 
         # Equation (4) of the Modquad paper
         # FIXME inertia with parallel axis theorem is not working. Temporary multiplied by zero
@@ -48,6 +50,10 @@ class Structure:
             np.sum(self.xx ** 2),
             np.sum(self.yy ** 2) + np.sum(self.xx ** 2)
         ])
+
+        self.accumulated_error = np.array([0.0, 0.0, 0.0])
+        self.traj_vars = None    # Populate this
+        self.state_vector = None # Populate this
 
         # self.inertia_tensor = np.array(params.I)
         try:
@@ -99,3 +105,9 @@ class Structure:
         #print("rot_fails: {}".format(self.motor_failure))
         #print(shape + '_' + rotorstat)
         return shape + '_' + rotorstat
+
+    def update_control_params(self, thrust_newtons, roll, pitch, yaw):
+        self.thrust_newtons = thrust_newtons
+	self.roll = roll
+	self.pitch = pitch
+	self.yaw = yaw

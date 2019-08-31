@@ -46,7 +46,8 @@ def control_input_listener(twist_msg):
     # For more info, check:
     # https://github.com/whoenig/crazyflie_ros
     global struc_mgr
-    struc_mgr.control_input_listener(twist_msg)
+    if struc_mgr is not None:
+        struc_mgr.control_input_listener(twist_msg)
     #roll = twist_msg.linear.y
     #pitch = twist_msg.linear.x
     #yaw = twist_msg.angular.z
@@ -126,7 +127,7 @@ def simulate(struc, newstruc, reconf_map, trajectory_function, t_step=0.01, spee
     # Don't start with a disassembler object
     disassembler = None
     
-    while not rospy.is_shutdown() and t < 6.0:
+    while not rospy.is_shutdown() and t < 4.0:
         rate.sleep()
         t += 1. / freq
 

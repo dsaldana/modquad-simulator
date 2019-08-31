@@ -32,8 +32,10 @@ def attitude_controller(control_in, x):
          math.radians(yaw_des) - quad_state.euler[2]]
 
     accumulated_error += e
-    # print accumulated_error[0]
+    #print(accumulated_error[0])
 
     Mx = kpx * e[0] + kdx * (0 - quad_state.omega[0]) + kix * accumulated_error[0]
     My = kpx * e[1] + kdx * (0 - quad_state.omega[1]) + kix * accumulated_error[1]
+    #print(F_newtons, Mx, My)
+    #print('---')
     return F_newtons, [Mx, My, 0]

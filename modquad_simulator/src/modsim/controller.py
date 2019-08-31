@@ -3,20 +3,23 @@ from math import sin, cos
 import numpy as np
 from math import sqrt
 
-accumulated_error = np.array([0., 0., 0.])
+# Global var will not work with multiple structures
+#accumulated_error = np.array([0., 0., 0.])
 
-
-def position_controller(state_vector, desired_state):
+def position_controller(struc_mgr, struc_ind, desired_state):
+    # Import here to avoid circ dependency issue
+    from modsim.datatype.structure_manager import StructureManager
     """
     PD controller to convert from position to accelerations, and accelerations to attitude.
     Controller: Using these current and desired states, you have to compute the desired controls
-
+    :param struc_mgr: StructureManager object
     :param qd: The object qt contains the current state and the desired state:
                 * The current states are: qd.pos, qd.vel, qd.euler = [rollpitchyaw], qd.omega.
                 * The desired states are: qd.pos_des, qd.vel_des, qd.acc_des, qd.yaw_des, qd.yawdot_des
     :return: desired thrust and attitude
     """
-    global accumulated_error
+    #global accumulated_error
+    state_vector = struc_mgr.strucs[struc_ind].state_vector
 
     # Desired state
     [pos_des, vel_des, acc_des, yaw_des, des_yawdot] = desired_state
@@ -30,9 +33,9 @@ def position_controller(state_vector, desired_state):
     g = params.grav
 
     xyp =   7.0 #355.0
-    xyd =  70.0 #255.0
-    xyi =   0.0 #145.0
-    zp  =  15.0 #1925.0
+    xyd =  90.0 #255.0
+    xyi =  01.0 #145.0
+    zp  =  25.0 #1925.0
     zd  =  18.0 #  0.0
     zi  =   2.5 # 45.0
     kp1_u, kd1_u, ki1_u = xyp, xyd, xyi #10., 71., .0
@@ -42,13 +45,13 @@ def position_controller(state_vector, desired_state):
     # Error
     pos_error = pos_des - pos
     vel_error = vel_des - vel
-    accumulated_error += pos_error
-    # print pos_error
+    struc_mgr.strucs[struc_ind].accumulated_error += pos_error
+    #print(pos_error)
 
     # Desired acceleration
-    r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * accumulated_error[0]
-    r2_acc = kp2_u * pos_error[1] + kd2_u * vel_error[1] + acc_des[1] + ki2_u * accumulated_error[1]
-    r3_acc = kp3_u * pos_error[2] + kd3_u * vel_error[2] + acc_des[2] + ki3_u * accumulated_error[2]
+    r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * struc_mgr.strucs[struc_ind].accumulated_error[0]
+    r2_acc = kp2_u * pos_error[1] + kd2_u * vel_error[1] + acc_des[1] + ki2_u * struc_mgr.strucs[struc_ind].accumulated_error[1]
+    r3_acc = kp3_u * pos_error[2] + kd3_u * vel_error[2] + acc_des[2] + ki3_u * struc_mgr.strucs[struc_ind].accumulated_error[2]
 
     phi_des = (r1_acc * sin(yaw_des) - r2_acc * cos(yaw_des)) / g
     theta_des = (r1_acc * cos(yaw_des) + r2_acc * sin(yaw_des)) / g
@@ -104,6 +107,7 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     # Failing motors -- IDs are 1-indexed, but rotor pos are 0-indexed
     for i, mf in enumerate(sorted(structure.motor_failure)):
         try:
+            #print("Fail rotor: {}".format(4*i + mf[1]))
             rotor_forces[4 * i + mf[1]] *= 0.0
         except:
             print(structure.ids)
@@ -129,5 +133,11 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     # TODO Mz
     Mz = M[2]
 
-    return F, [Mx, My, Mz], rotor_forces
+    #print(structure.ids)
+    #print(F)
+    #print(Mx)
+    #print(My)
+    #print(rotor_forces)
+    #print('---')
 
+    return F, [Mx, My, Mz], rotor_forces

@@ -37,7 +37,7 @@ class DisassemblyManager:
         rospy.set_param("opmode", "disassemble")
         self.mat = convert_struc_to_mat(structure.ids, structure.xx, structure.yy)
         self.next_disassemblies = {}
-        self.reserve_time = 1.0
+        self.reserve_time = 1.5
         self.time_for_disassembly = start_time + self.reserve_time # 1 seconds per layer
         self.trajectory_function = traj_func
 
