@@ -234,7 +234,7 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
     if t >= t_max:
         #pos = traj_vars.waypts[-1,:]
         #vel = [0.0, 0.0, 0.0]
-        #acc = [0.0, 0.0, 0.0]
+        #acc = [0.0, 0.0, 9.81]
         #yaw = 0
         #yawdot = 0
         #return [pos, vel, acc, yaw, yawdot]

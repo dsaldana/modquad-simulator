@@ -31,13 +31,13 @@ class DisassemblyManager:
     Plan: At what time which disassemblies happen
           Waypoints for structures to go to to avoid collision
     """
-    def __init__(self, structure, reconf_map, start_time, struc_mgr, traj_func):
+    def __init__(self, reconf_map, start_time, structure, traj_func):
         self.start_time = start_time
         self.reconf_map = reconf_map
         rospy.set_param("opmode", "disassemble")
         self.mat = convert_struc_to_mat(structure.ids, structure.xx, structure.yy)
         self.next_disassemblies = {}
-        self.reserve_time = 1.5
+        self.reserve_time = 3.0
         self.time_for_disassembly = start_time + self.reserve_time # 1 seconds per layer
         self.trajectory_function = traj_func
 
@@ -54,40 +54,39 @@ class DisassemblyManager:
         for s in struc_mgr.strucs:
             hashstring = s.gen_hashstring()
             if hashstring in self.reconf_map:
-                self.next_disassemblies[s.gen_hashstring()] = self.reconf_map[s.gen_hashstring()]
+                self.next_disassemblies[hashstring] = self.reconf_map[hashstring]
 
         if len(self.next_disassemblies) == 0:
-            rospy.set_param("opmode", "normal")
-            trajs = []
-            for i,s in enumerate(struc_mgr.strucs):
-                trajs.append(self.trajectory_function(0, speed, None, waypt_gen.line(struc_mgr.state_vecs[i][:3], [0.0,0.0,5.0])))
-                struc_mgr.trajs = trajs
+            for i, structure in enumerate(struc_mgr.strucs):
+                structure.traj_vars = self.trajectory_function(0, speed, None, 
+                        waypt_gen.line(structure.state_vector[:3], [i, i, 3.0]))
             print("Disassembly complete, returning to normal op mode")
+            rospy.set_param("opmode", "normal")
             return
 
         # Get positions of all current structures
-        svecs = struc_mgr.get_states()
+        #svecs = struc_mgr.get_states()
 
         # Plan locations for all structures + the two new ones
-        new_locs = [ [ [0.0,0.0,0.0], [0.0,0.0,0.0] ] for _ in range(len(svecs))]
-        for struc,new_loc,state_vec in zip(struc_mgr.strucs, new_locs, svecs):
+        new_locs = [ [ [0.0,0.0,0.0], [0.0,0.0,0.0] ] for _ in range(len(struc_mgr.strucs))]
+        for struc, new_loc in zip(struc_mgr.strucs, new_locs):
             dis = struc.gen_hashstring()
             if dis not in self.next_disassemblies:
                 continue
-            cur_loc = state_vec[:3]
+            cur_loc = struc.state_vector[:3]
             dis_loc = self.next_disassemblies[dis]
             cur_locp= [[], []]
 
             # Based on direction of disassembly, generate the new trajectories where 
             # generated substructures will be positioned
             if dis_loc[0][0] == 'x':
-                new_loc[0] = [cur_loc[0]-1.5, cur_loc[1], cur_loc[2]]
-                new_loc[1] = [cur_loc[0]+1.5, cur_loc[1], cur_loc[2]]
+                new_loc[0] = [cur_loc[0], cur_loc[1]-0.5, cur_loc[2]]
+                new_loc[1] = [cur_loc[0], cur_loc[1]+0.5, cur_loc[2]]
                 cur_locp[0]= [cur_loc[0], cur_loc[1]-params.cage_width * dis_loc[0][1], cur_loc[2]]
                 cur_locp[1]= [cur_loc[0], cur_loc[1]+params.cage_width * dis_loc[0][1], cur_loc[2]]
             else: # y disassembly
-                new_loc[0] = [cur_loc[0], cur_loc[1]-1.5, cur_loc[2]]
-                new_loc[1] = [cur_loc[0], cur_loc[1]+1.5, cur_loc[2]]
+                new_loc[0] = [cur_loc[0]-0.5, cur_loc[1], cur_loc[2]]
+                new_loc[1] = [cur_loc[0]+0.5, cur_loc[1], cur_loc[2]]
                 cur_locp[0]= [cur_loc[0]-params.cage_width * dis_loc[0][1], cur_loc[1], cur_loc[2]]
                 cur_locp[1]= [cur_loc[0]+params.cage_width * dis_loc[0][1], cur_loc[1], cur_loc[2]]
             print("New goals: {}".format(new_loc))
@@ -102,19 +101,19 @@ class DisassemblyManager:
             new_strucs = gen_strucs_from_split(ret)
 
             # Generate trajectories for new structures
-            traj_vars1 = self.trajectory_function(0, speed, None, waypt_gen.line(cur_locp[0], new_loc[0]))
-            traj_vars2 = self.trajectory_function(0, speed, None, waypt_gen.line(cur_locp[1], new_loc[1]))
-            trajs = [traj_vars1, traj_vars2]
+            new_strucs[0].traj_vars = self.trajectory_function(0, speed, None, waypt_gen.line(cur_locp[0], new_loc[0]))
+            new_strucs[1].traj_vars = self.trajectory_function(0, speed, None, waypt_gen.line(cur_locp[1], new_loc[1]))
 
             # Generate state_vecs offset from orig. center of mass based on the split
-            state_vec1 = copy.deepcopy(state_vec)
-            state_vec2 = copy.deepcopy(state_vec)
+            state_vec1 = struc.state_vector
+            state_vec2 = copy.copy(struc.state_vector)
             state_vec1[:3] = cur_locp[0]
             state_vec2[:3] = cur_locp[1]
-            state_vecs = [state_vec1, state_vec2]
+            new_strucs[0].state_vector = state_vec1
+            new_strucs[1].state_vector = state_vec2
 
             # Update the structure manager
-            struc_mgr.split_struc(struc, new_strucs, trajs, state_vecs)
+            struc_mgr.split_struc(struc, new_strucs)
 
             # Print new strucs
             print("Strucs as they now stand:")

@@ -65,7 +65,7 @@ dislocation_srv = (0., 0.)
 #    dislocation_srv = (disloc_msg.x, disloc_msg.y)
 #    return DislocationResponse()  # Return nothing
 
-def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
+def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix="", split_dim=0, breakline=1, split_ind=0):
     global dislocation_srv, thrust_newtons, roll, pitch, yaw
     global struc_mgr
@@ -112,7 +112,8 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
     struc_mgr = StructureManager([oldstruc])
 
     # Time based on avg desired speed (actual speed *not* constant)
-    tmax = oldstruc.traj_vars.total_dist / speed
+    overtime = 3.0
+    tmax = oldstruc.traj_vars.total_dist / speed * overtime
 
     # Params
     undocked = False
@@ -124,7 +125,7 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
     # Don't start with a disassembler object
     disassembler = None
     
-    while not rospy.is_shutdown() and t < 10.0:
+    while not rospy.is_shutdown() and t < tmax:
         rate.sleep()
         t += 1. / freq
 
@@ -141,12 +142,6 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
         struc_mgr.control_step(t, trajectory_function, speed, 
                 odom_publishers, tf_broadcaster)
 
-        if t > 2.0 and not undocked: # Split the structure
-            rospy.wait_for_service('SplitStructure')
-            print("Sequential undocking procedure triggered")
-            disassembler = DisassemblyManager(reconf_map, t, struc_mgr.strucs[0], trajectory_function)
-            t = 0.0
-            undocked = True
     struc_mgr.make_plots()
 
 def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, breakline=1, split_ind=0):
@@ -163,40 +158,24 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
 
     # 2. introduce fault, which means we need to reconfigure
-    mset1.fault_rotor(4, 0)
+    #mset1.fault_rotor(4, 0)
 
     # 3. Generate the Structure object with the fault
     struc1 = convert_modset_to_struc(mset1)
     struc1.traj_vars = traj_vars
 
-    # 4. Generate the modset object we will store reallocation in
-    mset2 = modset(mset1.num_mod, np.copy(mset1.struc), mset1, mset1.mod_ids)
-
-    # 5. Reallocate modules to positions
-    gsolve(mset2, waypts=traj_vars.waypts, speed=speed)
-
-    # 6. Generate goal structure
-    struc2 = convert_modset_to_struc(mset2)
-    struc2.traj_vars = traj_vars
-
-    # 7. Find path of disassembly
-    [cost, reconf_map] = reconfigure(mset1, mset2, waypts=traj_vars.waypts, speed=speed)
-
-    print("Reconfigure this structure:")
+    print("Testing this structure:")
     print(mset1.pi)
-    print("To this structure:")
-    print(mset2.pi)
     print('=======================')
 
-    # 8. Run the simulation of the breakup and reassembly
-    simulate(struc1, struc2, reconf_map, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
-
-    return None
+    # 4. Run the simulation
+    simulate(struc1, trajectory_function, waypts=wayptset, loc=[0,0,0], 
+            figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
 
 if __name__ == '__main__':
-    print("Starting Undocking Simulation")
+    print("Starting Control Testing Simulation")
     test_undock_along_path(
-                       structure_gen.zero(3, 3), 
-                       waypt_gen.line([0,0,0], [15,15,1]), 
-                       speed=0.55, test_id="redisassembly", 
-                       split_dim=0, breakline=1, split_ind=0)
+                       #structure_gen.zero(3, 3), 
+                       structure_gen.square(1),
+                       waypt_gen.line([0,0,0,],[1,2,3]), 
+                       speed=0.55, test_id="control_test")

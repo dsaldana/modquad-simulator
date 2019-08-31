@@ -3,12 +3,11 @@ from math import sin, cos
 import numpy as np
 from math import sqrt
 
+
 # Global var will not work with multiple structures
 #accumulated_error = np.array([0., 0., 0.])
 
-def position_controller(struc_mgr, struc_ind, desired_state):
-    # Import here to avoid circ dependency issue
-    from modsim.datatype.structure_manager import StructureManager
+def position_controller(structure, desired_state):
     """
     PD controller to convert from position to accelerations, and accelerations to attitude.
     Controller: Using these current and desired states, you have to compute the desired controls
@@ -19,7 +18,8 @@ def position_controller(struc_mgr, struc_ind, desired_state):
     :return: desired thrust and attitude
     """
     #global accumulated_error
-    state_vector = struc_mgr.strucs[struc_ind].state_vector
+    state_vector = structure.state_vector
+    num_mod = len(structure.xx)
 
     # Desired state
     [pos_des, vel_des, acc_des, yaw_des, des_yawdot] = desired_state
@@ -32,12 +32,23 @@ def position_controller(struc_mgr, struc_ind, desired_state):
     m = params.mass
     g = params.grav
 
-    xyp =   7.0 #355.0
-    xyd =  90.0 #255.0
-    xyi =  01.0 #145.0
-    zp  =  25.0 #1925.0
-    zd  =  18.0 #  0.0
-    zi  =   2.5 # 45.0
+    # Multi mod control params
+    if num_mod > 1:
+        xyp =   5.0 #355.0
+        xyd =  90.0 #255.0
+        xyi =   2.5 #145.0
+        zp  =  15.0 #1925.0
+        zd  =  18.0 #  0.0
+        zi  =   2.5 # 45.0
+    # Single mod control params
+    elif num_mod == 1:
+        xyp =  57.0
+        xyd =  99.0
+        xyi =   0.1 
+        zp  =  12.0
+        zd  =  18.0
+        zi  =   2.5
+
     kp1_u, kd1_u, ki1_u = xyp, xyd, xyi #10., 71., .0
     kp2_u, kd2_u, ki2_u = xyp, xyd, xyi #10., 71., .0
     kp3_u, kd3_u, ki3_u =  zp,  zd,  zi #10., 48., .0
@@ -45,13 +56,13 @@ def position_controller(struc_mgr, struc_ind, desired_state):
     # Error
     pos_error = pos_des - pos
     vel_error = vel_des - vel
-    struc_mgr.strucs[struc_ind].accumulated_error += pos_error
+    structure.accumulated_error += pos_error
     #print(pos_error)
 
     # Desired acceleration
-    r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * struc_mgr.strucs[struc_ind].accumulated_error[0]
-    r2_acc = kp2_u * pos_error[1] + kd2_u * vel_error[1] + acc_des[1] + ki2_u * struc_mgr.strucs[struc_ind].accumulated_error[1]
-    r3_acc = kp3_u * pos_error[2] + kd3_u * vel_error[2] + acc_des[2] + ki3_u * struc_mgr.strucs[struc_ind].accumulated_error[2]
+    r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * structure.accumulated_error[0]
+    r2_acc = kp2_u * pos_error[1] + kd2_u * vel_error[1] + acc_des[1] + ki2_u * structure.accumulated_error[1]
+    r3_acc = kp3_u * pos_error[2] + kd3_u * vel_error[2] + acc_des[2] + ki3_u * structure.accumulated_error[2]
 
     phi_des = (r1_acc * sin(yaw_des) - r2_acc * cos(yaw_des)) / g
     theta_des = (r1_acc * cos(yaw_des) + r2_acc * sin(yaw_des)) / g
@@ -141,3 +152,6 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     #print('---')
 
     return F, [Mx, My, Mz], rotor_forces
+
+# Import here to avoid circ dependency issue
+from modsim.datatype.structure import Structure

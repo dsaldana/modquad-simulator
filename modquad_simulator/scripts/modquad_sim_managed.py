@@ -135,36 +135,40 @@ def simulate(structures_list, trajectory_function,
         # Publish odometry
         [publish_structure_odometry(struc_mgr.strucs[i], struc_mgr.strucs[i].state_vector, odom_publishers, tf_broadcaster) for i,_ in enumerate(struc_mgr.strucs)]
 
-        for i,_ in enumerate(struc_mgr.strucs):
+        for structure in struc_mgr.strucs:
             #if i != 1: continue
 
-            desired_state = trajectory_function(t, speed, struc_mgr.strucs[i].traj_vars)
+            desired_state = trajectory_function(t, speed, structure.traj_vars)
 
             # Overwrite the control input with the demo trajectory
-            [thrust_newtons, roll, pitch, yaw] = position_controller(struc_mgr, i, desired_state)
-            thrust_newtons = round(thrust_newtons, 6)
-            roll = round(roll, 6)
-            pitch = round(pitch, 6)
-            yaw = round(yaw, 6)
-            if i == 2:
-                print("\tDesire {} = {}".format(struc_mgr.strucs[i].ids, desired_state))
-                print("in state = {}".format(struc_mgr.strucs[i].state_vector))
-                print("t={}, Control inputs: {}".format(t, [thrust_newtons, roll, pitch, yaw]))
+            [thrust_newtons, roll, pitch, yaw] = position_controller(
+                                                    structure, desired_state)
+            #thrust_newtons = round(thrust_newtons, 6)
+            #roll = round(roll, 6)
+            #pitch = round(pitch, 6)
+            #yaw = round(yaw, 6)
+            #if i == 2:
+            #    print("\tDesire {} = {}".format(struc_mgr.strucs[i].ids, desired_state))
+            #    print("in state = {}".format(struc_mgr.strucs[i].state_vector))
+            #    print("t={}, Control inputs: {}".format(t, [thrust_newtons, roll, pitch, yaw]))
 
             # Control output based on crazyflie input
-            F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), struc_mgr.strucs[i].state_vector)
-            if i == 2:
-                print("Control outputs: {}".format(F_single, M_single))
+            F_single, M_single = attitude_controller((thrust_newtons, roll, pitch, yaw), 
+                                                     structure.state_vector)
+            #if i == 2:
+            #    print("Control outputs: {}".format(F_single, M_single))
                 
             # Control of Moments and thrust
-            F_structure, M_structure, rotor_forces = modquad_torque_control(F_single, M_single, struc_mgr.strucs[i], motor_sat=True)
-            if i == 2:
-                print("Control moment, thrust: {}".format(F_structure, M_structure, rotor_forces))
+            F_structure, M_structure, rotor_forces = modquad_torque_control(
+                    F_single, M_single, structure, motor_sat=True)
+            #if i == 2:
+            #    print("Control moment, thrust: {}".format(F_structure, M_structure, rotor_forces))
 
             # Simulate
-            struc_mgr.strucs[i].state_vector = simulation_step(struc_mgr.strucs[i], struc_mgr.strucs[i].state_vector, F_structure, M_structure, 1. / freq)
-            if i == 2:
-                print("\tState {} = {}".format(struc_mgr.strucs[i].ids, struc_mgr.strucs[i].state_vector))
+            structure.state_vector = simulation_step(
+                    structure, structure.state_vector, F_structure, M_structure, 1. / freq)
+            #if i == 2:
+            #    print("\tState {} = {}".format(struc_mgr.strucs[i].ids, struc_mgr.strucs[i].state_vector))
 
         # Update time
         t += 1. / freq

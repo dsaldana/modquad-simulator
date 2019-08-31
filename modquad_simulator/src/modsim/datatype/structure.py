@@ -53,7 +53,7 @@ class Structure:
 
         self.accumulated_error = np.array([0.0, 0.0, 0.0])
         self.traj_vars = None    # Populate this
-        self.state_vector = None # Populate this
+        self.state_vector = [] # Populate this
 
         # self.inertia_tensor = np.array(params.I)
         try:
