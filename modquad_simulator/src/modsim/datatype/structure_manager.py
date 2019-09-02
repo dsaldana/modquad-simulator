@@ -85,9 +85,9 @@ class StructureManager:
                 odom_publishers, tf_broadcaster)
 
             desired_state = trajectory_function(t, speed, structure.traj_vars)
-            if i == 0 and (t-4.0) % 3.0 < 0.05:
-                print("Desired state[{}] = {}".format(t, desired_state))
-                print("Current state = {}".format(structure.state_vector))
+            #if i == 0 and (t-4.0) % 3.0 < 0.05:
+            #    print("Desired state[{}] = {}".format(t, desired_state))
+            #    print("Current state = {}".format(structure.state_vector))
 
             # Overwrite the control input with the demo trajectory
             [thrust_newtons, roll, pitch, yaw] = \
@@ -137,7 +137,7 @@ class StructureManager:
     def split_struc(self, struc_to_replace, struclist):
         # Remove the structure that was split apart and its vars
         replace_ind = self.strucs.index(struc_to_replace)
-        print("Replacing structure {} at index {}/{}".format(struc_to_replace.gen_hashstring(), replace_ind, len(self.strucs)))
+        #print("Replacing structure {} at index {}/{}".format(struc_to_replace.gen_hashstring(), replace_ind, len(self.strucs)))
         del self.strucs[replace_ind]
         org_des_stae = self.desired_states_log[replace_ind]
         org_stt_vecs = self.state_vecs_log[replace_ind]

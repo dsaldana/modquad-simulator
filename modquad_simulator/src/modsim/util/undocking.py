@@ -16,9 +16,9 @@ def gen_strucs_from_split(ret):
     mf2   = ret.mfaults2
     rf2   = ret.rfaults2
 
-    print("Making new structure consisting of: {}".format(ids1))
+    #print("Making new structure consisting of: {}".format(ids1))
     struc1 = Structure(ids1, xx1, yy1, zip(mf1, rf1))
-    print("Making new structure consisting of: {}".format(ids2))
+    #print("Making new structure consisting of: {}".format(ids2))
     struc2 = Structure(ids2, xx2, yy2, zip(mf2, rf2))
     return [struc1, struc2]
 

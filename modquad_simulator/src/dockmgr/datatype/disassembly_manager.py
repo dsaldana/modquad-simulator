@@ -47,7 +47,7 @@ class DisassemblyManager:
         Reconfibgurability means can all modules be placed into the new desired location
         Note we currently do not fully do this, we simply follow the map
         """
-        print("===================================================")
+        #print("===================================================")
         speed = rospy.get_param('structure_speed', 1.0)
         self.next_disassemblies = {}
 
@@ -111,12 +111,12 @@ class DisassemblyManager:
                     waypt_gen.line(np.copy(cur_locp[1]), np.copy(new_loc[1])))
 
 
-            print("Current loc: {}".format(struc.state_vector[:3]))
-            for i, loc in enumerate(new_loc):
-                print("\tNew struc loc: {}".format(new_strucs[i].state_vector[:3]))
-                print("\tNew goal: {}".format(loc))
+            #print("Current loc: {}".format(struc.state_vector[:3]))
+            #for i, loc in enumerate(new_loc):
+            #    print("\tNew struc loc: {}".format(new_strucs[i].state_vector[:3]))
+            #    print("\tNew goal: {}".format(loc))
 
-            print("Waypts for 0th structure:\n{}".format(new_strucs[0].traj_vars.waypts))
+            #print("Waypts for 0th structure:\n{}".format(new_strucs[0].traj_vars.waypts))
 
             # Update the structure manager
             struc_mgr.split_struc(struc, new_strucs)
