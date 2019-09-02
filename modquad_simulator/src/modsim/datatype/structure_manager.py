@@ -85,9 +85,9 @@ class StructureManager:
                 odom_publishers, tf_broadcaster)
 
             desired_state = trajectory_function(t, speed, structure.traj_vars)
-            #if i == 1:
-            #    print("Desired state[{}] = {}".format(t, desired_state))
-            #    print("Current state = {}".format(structure.state_vector))
+            if i == 0 and (t-4.0) % 3.0 < 0.05:
+                print("Desired state[{}] = {}".format(t, desired_state))
+                print("Current state = {}".format(structure.state_vector))
 
             # Overwrite the control input with the demo trajectory
             [thrust_newtons, roll, pitch, yaw] = \
@@ -160,8 +160,10 @@ class StructureManager:
             sveclog = np.array(self.state_vecs_log[i])
             dstatelog = np.array(self.desired_states_log[i])
             plt.subplot(len(self.strucs), 1, i+1)
-            plt.plot(dstatelog[:, 0], 'c')
-            plt.plot(sveclog[:, 0], 'r')
+            plt.plot(
+                tstep*np.arange(0, dstatelog[:,0].shape[0]), dstatelog[:, 0], 'c')
+            plt.plot(
+                tstep*np.arange(0, sveclog[:,0].shape[0]), sveclog[:, 0], 'r')
         plt.xlabel('Time (sec)')
         fig2 = plt.figure()
         plt.subplot(len(self.strucs), 1, 1)
@@ -170,8 +172,10 @@ class StructureManager:
             sveclog = np.array(self.state_vecs_log[i])
             dstatelog = np.array(self.desired_states_log[i])
             plt.subplot(len(self.strucs), 1, i+1)
-            plt.plot(dstatelog[:, 1], 'c')
-            plt.plot(sveclog[:, 1], 'r')
+            plt.plot(
+                tstep*np.arange(0, dstatelog[:,1].shape[0]), dstatelog[:, 1], 'c')
+            plt.plot(
+                tstep*np.arange(0, sveclog[:,1].shape[0]), sveclog[:, 1], 'r')
         plt.xlabel('Time (sec)')
         fig3 = plt.figure()
         plt.subplot(len(self.strucs), 1, 1)
@@ -180,7 +184,9 @@ class StructureManager:
             sveclog = np.array(self.state_vecs_log[i])
             dstatelog = np.array(self.desired_states_log[i])
             plt.subplot(len(self.strucs), 1, i+1)
-            plt.plot(dstatelog[:, 2], 'c')
-            plt.plot(sveclog[:, 2], 'r')
+            plt.plot(
+                tstep*np.arange(0, dstatelog[:,2].shape[0]), dstatelog[:, 2], 'c')
+            plt.plot(
+                tstep*np.arange(0, sveclog[:,2].shape[0]), sveclog[:, 2], 'r')
         plt.xlabel('Time (sec)')
         plt.show()

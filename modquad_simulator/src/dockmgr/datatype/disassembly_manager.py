@@ -60,15 +60,10 @@ class DisassemblyManager:
             #print("{} disassembles at {}".format(hashstring, self.reconf_map[hashstring]))
 
         if len(self.next_disassemblies) == 0:
-            #for i, structure in enumerate(struc_mgr.strucs):
-            #    structure.traj_vars = self.trajectory_function(0, speed, None, 
-            #            waypt_gen.line(structure.state_vector[:3], [i, i, 3.0]))
+            #speed = 0.75
             print("Disassembly complete, returning to normal op mode")
             rospy.set_param("opmode", "normal")
-            return
-
-        # Get positions of all current structures
-        #svecs = struc_mgr.get_states()
+            return ""
 
         # Plan locations for all structures + the two new ones
         new_locs = [ [ [0.0,0.0,0.0], [0.0,0.0,0.0] ] for _ in range(len(struc_mgr.strucs))]
@@ -79,19 +74,20 @@ class DisassemblyManager:
             cur_loc = struc.state_vector[:3]
             dis_loc = self.next_disassemblies[dis]
             cur_locp= [[], []]
+            zero_loc = init_state([0.0, 0.0, 0.0], 0)
 
             # Based on direction of disassembly, generate the new trajectories where 
             # generated substructures will be positioned
             if dis_loc[0][0] == 'x':
-                new_loc[0] = [cur_loc[0], cur_loc[1]-1.3, cur_loc[2] + 1.1]
-                new_loc[1] = [cur_loc[0], cur_loc[1]+1.3, cur_loc[2] + 1.1]
-                cur_locp[0]= [cur_loc[0], cur_loc[1]-1*params.cage_width * dis_loc[0][1], cur_loc[2]]
-                cur_locp[1]= [cur_loc[0], cur_loc[1]+1*params.cage_width * dis_loc[0][1], cur_loc[2]]
+                new_loc[0] = [np.copy(cur_loc[0]), np.copy(cur_loc[1])-2.0, np.copy(cur_loc[2]) + 1.0]
+                new_loc[1] = [np.copy(cur_loc[0]), np.copy(cur_loc[1])+2.0, np.copy(cur_loc[2]) + 1.0]
+                cur_locp[0]= [np.copy(cur_loc[0]), np.copy(cur_loc[1])-1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[2])]
+                cur_locp[1]= [np.copy(cur_loc[0]), np.copy(cur_loc[1])+1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[2])]
             else: # y disassembly
-                new_loc[0] = [cur_loc[0]-1.3, cur_loc[1], cur_loc[2] + 1.1]
-                new_loc[1] = [cur_loc[0]+1.3, cur_loc[1], cur_loc[2] + 1.1]
-                cur_locp[0]= [cur_loc[0]-1*params.cage_width * dis_loc[0][1], cur_loc[1], cur_loc[2]]
-                cur_locp[1]= [cur_loc[0]+1*params.cage_width * dis_loc[0][1], cur_loc[1], cur_loc[2]]
+                new_loc[0] = [np.copy(cur_loc[0])-2.0, np.copy(cur_loc[1]), np.copy(cur_loc[2]) + 1.0]
+                new_loc[1] = [np.copy(cur_loc[0])+2.0, np.copy(cur_loc[1]), np.copy(cur_loc[2]) + 1.0]
+                cur_locp[0]= [np.copy(cur_loc[0])-1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[1]), np.copy(cur_loc[2])]
+                cur_locp[1]= [np.copy(cur_loc[0])+1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[1]), np.copy(cur_loc[2])]
             # Split the structure physically
             split = rospy.ServiceProxy("SplitStructure", SplitStructure)
             split_dim, breakline, split_ind = dis_loc[0][0], dis_loc[0][1], dis_loc[0][2], 
@@ -104,43 +100,43 @@ class DisassemblyManager:
             # Generate state_vecs offset from orig. center of mass based on the split
             new_strucs[0].state_vector = init_state(cur_locp[0], 0)
             new_strucs[1].state_vector = init_state(cur_locp[1], 0)
-
+            
             # Generate trajectories for new structures
-            speed = 0.3
+            speed = 0.5
             new_strucs[0].traj_vars = self.trajectory_function(
-                    t, speed, None, waypt_gen.line(cur_locp[0], new_loc[0]))
+                    t, speed, None, 
+                    waypt_gen.line(np.copy(cur_locp[0]), np.copy(new_loc[0])))
             new_strucs[1].traj_vars = self.trajectory_function(
-                    t, speed, None, waypt_gen.line(cur_locp[1], new_loc[1]))
+                    t, speed, None, 
+                    waypt_gen.line(np.copy(cur_locp[1]), np.copy(new_loc[1])))
+
 
             print("Current loc: {}".format(struc.state_vector[:3]))
             for i, loc in enumerate(new_loc):
                 print("\tNew struc loc: {}".format(new_strucs[i].state_vector[:3]))
                 print("\tNew goal: {}".format(loc))
 
-            # Transfer the accumulated error
-            #new_strucs[0].pos_accumulated_error = 0.0 * struc.accumulated_error
-            #new_strucs[1].pos_accumulated_error = 0.0 * struc.accumulated_error
-            #new_strucs[0].pos_accumulated_error = 0.0 * struc.accumulated_error
-            #new_strucs[1].pos_accumulated_error = 0.0 * struc.accumulated_error
+            print("Waypts for 0th structure:\n{}".format(new_strucs[0].traj_vars.waypts))
 
             # Update the structure manager
             struc_mgr.split_struc(struc, new_strucs)
 
-            print(struc_mgr.strucs[0].traj_vars.waypts)
+            #print(struc_mgr.strucs[0].traj_vars.waypts)
 
             # Print new strucs
             print("Strucs as they now stand:")
             for s in struc_mgr.strucs:
                 print("\t{}\t{}".format(s.ids, s.gen_hashstring()))
             print('##############')
+        return None
 
     def take_step(self, struc_mgr, t, ind):
         """
         Handles when to perform the next split
         """
         if t >= self.time_for_disassembly:
-            self.plan_next_disassembly_set(struc_mgr, t)
-            self.time_for_disassembly = self.reserve_time
+            ret = self.plan_next_disassembly_set(struc_mgr, t)
+            self.time_for_disassembly += self.reserve_time
             print("Splits at t = {}, ind = {}".format(t, ind))
-            return True
+            return ret is None
         return False

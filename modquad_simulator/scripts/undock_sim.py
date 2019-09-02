@@ -132,10 +132,10 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
         opmode = rospy.get_param('opmode', 'normal')
         if opmode == 'disassemble':
-            if disassembler.take_step(struc_mgr, t, ind):
-                opmode = rospy.get_param('opmode', 'normal')
-                if opmode == 'disassemble':
-                    t = 0.0
+            # Reset time only if the disassembler disassembles another layer
+            #if 
+            disassembler.take_step(struc_mgr, t, ind)
+            #    t = 0.0
         elif opmode == 'assemble':
             pass # TODO
 
@@ -147,9 +147,10 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
         if t > 4.0 and not undocked: # Split the structure
             rospy.wait_for_service('SplitStructure')
-            print("Sequential undocking procedure triggered")
+            print("Parallelized undocking procedure triggered")
             disassembler = DisassemblyManager(reconf_map, t, struc_mgr.strucs[0], trajectory_function)
             undocked = True
+
         ind += 1
     struc_mgr.make_plots()
 
@@ -187,9 +188,9 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     [cost, reconf_map] = reconfigure(mset1, mset2, waypts=traj_vars.waypts, speed=speed)
 
     print("Reconfigure this structure:")
-    print(mset1.pi)
+    print(mset1.pi + 1)
     print("To this structure:")
-    print(mset2.pi)
+    print(mset2.pi + 1)
     print('=======================')
 
     # 8. Run the simulation of the breakup and reassembly

@@ -106,7 +106,7 @@ def _min_snap_init(waypts, speed=1, t=0.0):
     # Find distances between waypts
     dists = np.sqrt(np.sum(((np.roll(waypts, 1, axis=0) - waypts)[1:, :]) ** 2, axis=1))
     totaldist = np.sum(dists)
-    t_max = totaldist / speed
+    t_max = totaldist / speed + t
     cumdist = np.cumsum(dists)
     cumdist = np.insert(cumdist, 0, 0) 
 
@@ -121,8 +121,7 @@ def _min_snap_init(waypts, speed=1, t=0.0):
     tstep = 1.0
     #print(times)
     #print(waypts[:,0])
-    newtimes = np.arange(0,t_max+tstep,tstep)
-    newtimes += t
+    newtimes = np.arange(0,t_max+tstep,tstep) + t
 
     #print("tmax = {}".format(t_max))
     #print("dist = {}".format(totaldist))
@@ -140,7 +139,7 @@ def _min_snap_init(waypts, speed=1, t=0.0):
     waypts = np.transpose(np.vstack((xq, yq, zq)))
     waypts[0, :] = start
     waypts[-1, :] = end
-    times = np.arange(0,t_max+tstep,tstep)
+    times = np.arange(0,t_max+tstep,tstep) + t
     #print(waypts)
     #print(newtimes)
     #print(xq)
@@ -232,7 +231,7 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
     # find where we are in the trajectory
     if traj_vars is None:
         raise ValueError("No trajectory data passed in")
-    t_max = traj_vars.total_dist / speed
+    t_max = traj_vars.times[-1]
     if t >= t_max:
         #pos = traj_vars.waypts[-1,:]
         #vel = [0.0, 0.0, 0.0]
@@ -243,10 +242,15 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
         t = t_max # Hover at final spot
     ind = [i for i in range(0, len(traj_vars.times) - 1)
            if t >= traj_vars.times[i] and t < traj_vars.times[i + 1]]
-    if len(ind) != 1:
+    if len(ind) != 1 and t != t_max:
         #print 'ind = ', ind
+        print(traj_vars.times)
+        print("Time = {}, Max Time = {}".format(t, t_max))
         raise ValueError("Malformed times vector for legs of journey")
-    ind = ind[0]
+    if t == t_max:
+        ind = -2
+    else:
+        ind = ind[0]
     prev = traj_vars.waypts[ind, :]
     dest = traj_vars.waypts[ind + 1, :]
     pdiff = dest - prev
