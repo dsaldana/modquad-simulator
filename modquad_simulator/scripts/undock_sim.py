@@ -67,7 +67,7 @@ dislocation_srv = (0., 0.)
 
 def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix="", split_dim=0, breakline=1, split_ind=0):
-    global dislocation_srv, thrust_newtons, roll, pitch, yaw
+    #global dislocation_srv, thrust_newtons, roll, pitch, yaw
     global struc_mgr
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
@@ -80,6 +80,7 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
     rospy.set_param('opmode', 'normal')
     rospy.set_param('structure_speed', speed)
+    rospy.set_param('rotor_map', 2) # So that modquad_torque_control knows which mapping to use
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
@@ -113,6 +114,7 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
     # Time based on avg desired speed (actual speed *not* constant)
     tmax = oldstruc.traj_vars.total_dist / speed
+    overtime = 1.5
 
     # Params
     undocked = False
@@ -123,15 +125,17 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
     # Don't start with a disassembler object
     disassembler = None
-    
-    while not rospy.is_shutdown() and t < 10.0:
+    ind = 0
+    while not rospy.is_shutdown() and t < overtime * tmax:
         rate.sleep()
         t += 1. / freq
 
         opmode = rospy.get_param('opmode', 'normal')
         if opmode == 'disassemble':
-            if disassembler.take_step(struc_mgr, t):
-                t = 0.0
+            if disassembler.take_step(struc_mgr, t, ind):
+                opmode = rospy.get_param('opmode', 'normal')
+                if opmode == 'disassemble':
+                    t = 0.0
         elif opmode == 'assemble':
             pass # TODO
 
@@ -141,12 +145,12 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
         struc_mgr.control_step(t, trajectory_function, speed, 
                 odom_publishers, tf_broadcaster)
 
-        if t > 2.0 and not undocked: # Split the structure
+        if t > 4.0 and not undocked: # Split the structure
             rospy.wait_for_service('SplitStructure')
             print("Sequential undocking procedure triggered")
             disassembler = DisassemblyManager(reconf_map, t, struc_mgr.strucs[0], trajectory_function)
-            t = 0.0
             undocked = True
+        ind += 1
     struc_mgr.make_plots()
 
 def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, breakline=1, split_ind=0):
@@ -191,12 +195,9 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     # 8. Run the simulation of the breakup and reassembly
     simulate(struc1, struc2, reconf_map, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
 
-    return None
-
 if __name__ == '__main__':
     print("Starting Undocking Simulation")
     test_undock_along_path(
                        structure_gen.zero(3, 3), 
-                       waypt_gen.line([0,0,0], [15,15,1]), 
-                       speed=0.55, test_id="redisassembly", 
-                       split_dim=0, breakline=1, split_ind=0)
+                       waypt_gen.line([0,0,0], [10,15,1]), 
+                       speed=0.55, test_id="redisassembly")

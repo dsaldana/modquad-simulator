@@ -46,9 +46,9 @@ def publish_for_attached_mods(robot_id, structure_x, structure_y, xx, yy, main_i
     publish_odom_relative(structure_x - xx[0], structure_y - yy[0], robot_id, main_id, odom_publishers[robot_id])
     publish_transform_stamped_relative(robot_id, main_id, structure_x - xx[0], structure_y - yy[0], tf_broadcaster)
 
-def publish_structure_odometry(structure, x, odom_publishers, tf_broadcaster):
+def publish_structure_odometry(structure, odom_publishers, tf_broadcaster):
     #global thrust_newtons, roll, pitch, yaw
-    ids, xx, yy = structure.ids, structure.xx, structure.yy
+    ids, xx, yy, x = structure.ids, structure.xx, structure.yy, structure.state_vector
 
     # publish main robot
     #if len(xx) == 1:
@@ -77,34 +77,51 @@ class StructureManager:
         #print('-----')
         # NOTE: for some reason loop by value over a zip() does not work
         for i, structure in enumerate(self.strucs):
-            #if i < 1: continue
+            #if i != 1 and len(self.strucs) > 1: 
+            #    continue
 
             # Publish odometry
-            publish_structure_odometry(structure, structure.state_vector, \
+            publish_structure_odometry(structure, \
                 odom_publishers, tf_broadcaster)
 
             desired_state = trajectory_function(t, speed, structure.traj_vars)
-            #if self.demo_trajectory:
-            #print("pos[{}] = {}".format(i, desired_state[0]))
+            #if i == 1:
+            #    print("Desired state[{}] = {}".format(t, desired_state))
+            #    print("Current state = {}".format(structure.state_vector))
+
             # Overwrite the control input with the demo trajectory
-            [thrust_newtons, roll, pitch, yaw] = position_controller( structure, desired_state)
+            [thrust_newtons, roll, pitch, yaw] = \
+                    position_controller(structure, desired_state)
+            #if i == 1:
+            #    print("thrust={}, roll={}, pitch={}, yaw={}".format(
+            #        thrust_newtons, roll, pitch, yaw))
 
             #self.strucs[i].update_control_params(thrust_newtons, roll, pitch, yaw)
             self.desired_states_log[i].append(desired_state[0])
 
-
             # Control output based on crazyflie input
-            F_single, M_single = attitude_controller(
-                    (thrust_newtons, roll, pitch, yaw), structure.state_vector)
+            F_single, M_single = \
+                    attitude_controller(structure, (thrust_newtons, roll, pitch, yaw))
+            #if i == 1:
+            #    print("F_single={}, M_single={}".format(F_single, M_single))
 
             # Control of Moments and thrust
             F_structure, M_structure, rotor_forces = modquad_torque_control(
                             F_single, M_single, structure, motor_sat=True)
+            #if i == 1:
+            #    print("F_struc={}, M_struc={}, rot_force={}".format(
+            #       F_structure, M_structure, rotor_forces))
 
             # Simulate
             self.state_vecs_log[i].append(structure.state_vector[:3])
             structure.state_vector = simulation_step(structure, structure.state_vector, 
                             F_structure, M_structure, 1. / self.freq)
+            #if i == 1:
+            #    print("New state = {}".format(structure.state_vector))
+            #    print('-----')
+            #if i == 1:
+            #    print("Pos Err: {}".format(structure.pos_accumulated_error))
+            #    print("Att Err: {}".format(structure.att_accumulated_error))
         
     def get_data_by_ind(self, index):
         if index < 0 or index > len(self.strucs):

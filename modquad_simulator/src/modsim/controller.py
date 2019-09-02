@@ -1,3 +1,4 @@
+import rospy
 import modsim.params as params
 from math import sin, cos
 import numpy as np
@@ -33,14 +34,22 @@ def position_controller(structure, desired_state):
     g = params.grav
 
     # Multi mod control params
-    if num_mod > 2:
+    if num_mod > 4:
         xyp =   5.0 #355.0
         xyd =  90.0 #255.0
         xyi =   2.5 #145.0
         zp  =  15.0 #1925.0
         zd  =  18.0 #  0.0
         zi  =   2.5 # 45.0
-    # Single mod control params
+    # Control gains for 3-4 mods
+    elif num_mod > 2:
+        xyp =  39.0
+        xyd =  51.0
+        xyi =   0.01
+        zp  =  12.0
+        zd  =  18.0
+        zi  =   2.5
+    # 1-2 mod control params
     else:
         xyp =  57.0
         xyd =  99.0
@@ -56,13 +65,13 @@ def position_controller(structure, desired_state):
     # Error
     pos_error = pos_des - pos
     vel_error = vel_des - vel
-    structure.accumulated_error += pos_error
+    structure.pos_accumulated_error += pos_error
     #print(pos_error)
 
     # Desired acceleration
-    r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * structure.accumulated_error[0]
-    r2_acc = kp2_u * pos_error[1] + kd2_u * vel_error[1] + acc_des[1] + ki2_u * structure.accumulated_error[1]
-    r3_acc = kp3_u * pos_error[2] + kd3_u * vel_error[2] + acc_des[2] + ki3_u * structure.accumulated_error[2]
+    r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * structure.pos_accumulated_error[0]
+    r2_acc = kp2_u * pos_error[1] + kd2_u * vel_error[1] + acc_des[1] + ki2_u * structure.pos_accumulated_error[1]
+    r3_acc = kp3_u * pos_error[2] + kd3_u * vel_error[2] + acc_des[2] + ki3_u * structure.pos_accumulated_error[2]
 
     phi_des = (r1_acc * sin(yaw_des) - r2_acc * cos(yaw_des)) / g
     theta_des = (r1_acc * cos(yaw_des) + r2_acc * sin(yaw_des)) / g
@@ -94,19 +103,42 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     #    (4)  |      (1) [L, -L]
     #   Y<-----
     #    (3)         (2)
+
+    # Will change later, but the mqscheduler package was written as:
+    #    (3)    |    (2) [L, -L]
+    #     ------------
+    #    (4)    |    (1)
+    # So this needs to do a transferance
+
+    # 1 is the first mapping, 2 is the second
+    rotor_map_mode = rospy.get_param("rotor_map", 1) 
+
     rx, ry = [], []
     L = params.arm_length * sqrt(2) / 2.
 
     for x, y in zip(structure.xx, structure.yy):
-        rx.append(x + L)
-        rx.append(x - L)
-        rx.append(x - L)
-        rx.append(x + L)
-        # y-axis
-        ry.append(y - L)
-        ry.append(y - L)
-        ry.append(y + L)
-        ry.append(y + L)
+        if rotor_map_mode == 1:
+            # x-axis
+            rx.append(x + L) # R
+            rx.append(x - L)
+            rx.append(x - L)
+            rx.append(x + L)
+            # y-axis
+            ry.append(y - L)
+            ry.append(y - L)
+            ry.append(y + L)
+            ry.append(y + L)
+        else:
+            # x-axis
+            rx.append(x - L) # R
+            rx.append(x + L)
+            rx.append(x + L)
+            rx.append(x - L)
+            # y-axis
+            ry.append(y - L)
+            ry.append(y - L)
+            ry.append(y + L)
+            ry.append(y + L)
 
     sign_rx = [1 if rx_i > 0 else -1 for rx_i in rx]
     sign_ry = [1 if ry_i > 0 else -1 for ry_i in ry]

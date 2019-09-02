@@ -121,9 +121,10 @@ def simulate(structures, trajectory_function,
     tf_broadcaster = tf2_ros.TransformBroadcaster()
 
     state_vector = init_state(loc, 0)
-    svecs = [state_vector for _ in range(num_mod)]
+    #svecs = [init_state(s.traj_vars.waypts[0,:],0) for s in structures]
     for s in structures:
-        s.state_vector = copy.copy(state_vector)
+        s.state_vector = init_state(s.traj_vars.waypts[0,:],0)
+
     struc_mgr = StructureManager(structures)
 
 
@@ -143,8 +144,9 @@ def setup_and_run(speed=1.0):
     global num_mod
     trajectory_function = min_snap_trajectory
     radius = 2.5
+    speed = 2.0
     trajs = [trajectory_function(0, speed, None, 
-                waypt_gen.line( [0,0,0],
+                waypt_gen.line( [i,i,i],
                     [radius*math.cos(math.pi / 4.0 * i),
                         radius*math.sin(math.pi / 4.0 * i),
                         i+1])) 

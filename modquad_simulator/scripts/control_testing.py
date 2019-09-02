@@ -102,11 +102,8 @@ def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .
     ########### Simulator ##############
 
     # Location of first structure
-    loc = [init_x, init_y, init_z]
-    state_vector = init_state(loc, 0)
-
-    # Make a copy of the state vector for each structure we have
-    oldstruc.state_vector = state_vector
+    #loc = [init_x, init_y, init_z]
+    oldstruc.state_vector = init_state(loc, 0)
 
     # Init structure manager
     struc_mgr = StructureManager([oldstruc])
@@ -158,7 +155,7 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
 
     # 2. introduce fault, which means we need to reconfigure
-    #mset1.fault_rotor(4, 0)
+    mset1.fault_rotor(1, 1)
 
     # 3. Generate the Structure object with the fault
     struc1 = convert_modset_to_struc(mset1)
@@ -169,7 +166,7 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     print('=======================')
 
     # 4. Run the simulation
-    simulate(struc1, trajectory_function, waypts=wayptset, loc=[0,0,0], 
+    simulate(struc1, trajectory_function, waypts=wayptset, loc=[9,9,9], 
             figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
 
 if __name__ == '__main__':
@@ -177,5 +174,5 @@ if __name__ == '__main__':
     test_undock_along_path(
                        structure_gen.zero(2, 1), 
                        #structure_gen.square(1),
-                       waypt_gen.line([0,0,0,],[1,2,3]), 
-                       speed=0.55, test_id="control_test")
+                       waypt_gen.line([9,9,9],[1,2,3]), 
+                       speed=0.3, test_id="control_test")

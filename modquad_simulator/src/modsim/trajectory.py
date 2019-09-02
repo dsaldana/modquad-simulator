@@ -95,7 +95,7 @@ def simple_waypt_trajectory(t, t_max=30, traj_vars=None, waypts=[], ret_snap=Fal
     return [pos, vel, acc, yaw, yawdot]
 
 
-def _min_snap_init(waypts, speed=1):
+def _min_snap_init(waypts, speed=1, t=0.0):
     """
     This function is called once at the beginning of the run for min snap trajectory 
     planning, in which we compute coeffs for the equation of motion describing 
@@ -113,6 +113,7 @@ def _min_snap_init(waypts, speed=1):
     # Target times for each waypt
     times = [0] + [dists[i] / totaldist * t_max for i in range(0, len(dists))]
     times = np.cumsum(np.array(times))
+    times += t
     #sys.exit(0)
     #plt.plot(waypts[:, 0], waypts[:, 1])
 
@@ -121,6 +122,7 @@ def _min_snap_init(waypts, speed=1):
     #print(times)
     #print(waypts[:,0])
     newtimes = np.arange(0,t_max+tstep,tstep)
+    newtimes += t
 
     #print("tmax = {}".format(t_max))
     #print("dist = {}".format(totaldist))
@@ -225,7 +227,7 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
     :param ret_snap: if true, return just the snap, not [pos, vel, acc, yaw, yawdot]
     """
     if waypts is not None:  # i.e. waypts passed in, then initialize
-        traj_vars = _min_snap_init(waypts, speed)
+        traj_vars = _min_snap_init(waypts, speed, t)
         return traj_vars
     # find where we are in the trajectory
     if traj_vars is None:
