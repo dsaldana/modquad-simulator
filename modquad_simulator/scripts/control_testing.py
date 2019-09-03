@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+This simulation is used to tune the gains for structures in 
+the position controller.
+"""
 import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist

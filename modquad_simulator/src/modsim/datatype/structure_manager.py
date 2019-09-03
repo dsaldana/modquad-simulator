@@ -85,7 +85,7 @@ class StructureManager:
                 odom_publishers, tf_broadcaster)
 
             desired_state = trajectory_function(t, speed, structure.traj_vars)
-            #if i == 0 and (t-4.0) % 3.0 < 0.05:
+            #if i == 0 and abs(t - 3.0) < 0.05:
             #    print("Desired state[{}] = {}".format(t, desired_state))
             #    print("Current state = {}".format(structure.state_vector))
 

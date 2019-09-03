@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+This service takes in a serialized structure and returns two serialized 
+substructures depending on where the split id desired.
+"""
 import rospy
 import numpy as np
 import networkx as nx

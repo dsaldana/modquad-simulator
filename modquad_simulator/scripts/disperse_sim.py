@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-
+"""
+This simulation is meant to test that multiple different structures
+can be controlled independently of one another.
+"""
 import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist
