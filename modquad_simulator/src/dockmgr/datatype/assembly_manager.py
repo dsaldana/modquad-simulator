@@ -8,6 +8,7 @@ import tf2_ros
 import numpy as np
 import networkx as nc
 import copy
+from itertools import combinations
 
 # Modquad modules
 from modsim import params
@@ -34,6 +35,8 @@ class AssemblyManager:
         self.reserve_time = 3.0
         self.time_for_assembly = start_time + self.reserve_time # seconds per layer
         self.trajectory_function = traj_func
+        self.dockings = None
+        self.n = rospy.get_param("num_used_robots", 2)
 
     def find_assembly_tree(struc_mgr):
         pass
@@ -84,3 +87,21 @@ class AssemblyManager:
             print("Joins at t = {}, ind = {}".format(t, ind))
             return ret is None
         return False
+
+    def handle_dockings_msg(self, msg):
+        if self.dockings is None:
+            self.dockings = np.array(msg.data)
+            return
+        dockings = np.array(msg.data) - self.dockings
+        if np.sum(dockings) == 0:
+            return
+        else:
+            pairs = list(combinations(range(1,self.n+1), 2))
+            dock_ind = np.nonzero(dockings)
+            print('-----')
+            print(msg)
+            print(dock_ind)
+            for x in dock_ind[0]:
+                print("new docking of mods: {}".format(pairs[x]))
+            self.dockings = np.array(msg.data)
+            print('-----')
