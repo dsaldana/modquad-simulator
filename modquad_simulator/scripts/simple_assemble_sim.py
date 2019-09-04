@@ -83,7 +83,7 @@ def docking_callback(msg):
     else:
         raise ValueError("Assembler object does not exist")
 
-def simulate(trajectory_function):
+def simulate(pi, trajectory_function):
     #global dislocation_srv, thrust_newtons, roll, pitch, yaw
     global assembler, struc_mgr, t
     rospy.init_node('modrotor_simulator', anonymous=True)
@@ -125,10 +125,16 @@ def simulate(trajectory_function):
     t = 0
 
     # Make dummy assembler that only handles docking, doesn't plan them
-    assembler = AssemblyManager(0, np.zeros((3,3)), trajectory_function)
+    assembler = AssemblyManager(0, pi, trajectory_function)
+
+    # Given the current structures, plan out order of attachments
+    assembler.generate_assembly_order(struc_mgr) # Note: this is "offline phase"
+
     # Subscribe to /dockings so that you can tell when to combine structures
     rospy.Subscriber('/dockings', Int8MultiArray, docking_callback) 
 
+    unplanned = True
+    doneplanning = False
     while not rospy.is_shutdown() and t < overtime * tmax:
         rate.sleep()
         t += 1. / freq
@@ -138,6 +144,15 @@ def simulate(trajectory_function):
         # all structures, and hence for all individual modules
         struc_mgr.control_step(t, trajectory_function, speed, 
                 odom_publishers, tf_broadcaster)
+
+        if len(struc_mgr.strucs) == 2 and unplanned:
+            assembler.plan_next_z_motion(t, struc_mgr, modid1=2, modid2=3, 
+                    zlayer=3, traj_func=trajectory_function)
+            unplanned = False
+        if len(struc_mgr.strucs) == 2 and not unplanned and t >= assembler.next_time_to_plan and not doneplanning:
+            assembler.plan_next_xy_motion(t, struc_mgr, modid1=2, modid2=3, 
+                    adj_dir='right', traj_func=trajectory_function)
+            doneplanning = True
 
     # Once everything is done, plot the desired vs. actual positions
     #struc_mgr.make_plots()
@@ -175,6 +190,7 @@ if __name__ == '__main__':
     strucs[2].traj_vars = traj3
     strucs[3].traj_vars = traj4
 
+    pi = np.array([[1,2,3],[0,0,4]])
     # Initial position of structures should match the first waypt
     for i,s in enumerate(strucs):
         s.state_vector = init_state(s.traj_vars.waypts[0,:], 0)
@@ -183,4 +199,4 @@ if __name__ == '__main__':
     struc_mgr = StructureManager(strucs)
 
     # 8. Run the simulation of the breakup and reassembly
-    simulate(trajectory_function)
+    simulate(pi, trajectory_function)

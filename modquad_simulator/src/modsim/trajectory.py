@@ -95,7 +95,7 @@ def simple_waypt_trajectory(t, t_max=30, traj_vars=None, waypts=[], ret_snap=Fal
     return [pos, vel, acc, yaw, yawdot]
 
 
-def _min_snap_init(waypts, speed=1, t=0.0):
+def _min_snap_init(waypts, speed=1, t=0.0, use_splines=True):
     """
     This function is called once at the beginning of the run for min snap trajectory 
     planning, in which we compute coeffs for the equation of motion describing 
@@ -108,17 +108,27 @@ def _min_snap_init(waypts, speed=1, t=0.0):
     totaldist = np.sum(dists)
     t_max = totaldist / speed + t
     cumdist = np.cumsum(dists)
-    cumdist = np.insert(cumdist, 0, 0) 
+    if cumdist[0] != 0:
+        cumdist = np.insert(cumdist, 0, 0) 
 
     # Target times for each waypt
-    times = [0] + [dists[i] / totaldist * t_max for i in range(0, len(dists))]
-    times = np.cumsum(np.array(times))
+    #print('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
+    #print('waypts = \n{}'.format(waypts))
+    #print("dists = {}".format(dists))
+    #print("totaldist = {}".format(totaldist))
+    #print("t_max = {}".format(t_max))
+    #print("cumdist = {}".format(cumdist))
+    #for i in range(len(dists)):
+    #    print("\tnt = {}".format(dists[i] / totaldist * t_max))
+    #times = [0] + [dists[i] / totaldist * t_max for i in range(len(dists))]
+    times = np.array([cumdist[i] / totaldist * t_max for i in range(len(cumdist))])
+    #times = np.cumsum(np.array(times))
     times += t
     #sys.exit(0)
     #plt.plot(waypts[:, 0], waypts[:, 1])
 
     # Spline the path
-    tstep = 1.0
+    tstep = 1.00
     #print(times)
     #print(waypts[:,0])
     newtimes = np.arange(0,t_max+tstep,tstep) + t
@@ -129,9 +139,21 @@ def _min_snap_init(waypts, speed=1, t=0.0):
     #print(newtimes)
     #print(np.transpose(waypts))
 
+    #if use_splines or True:
     xq = interp.barycentric_interpolate(times, waypts[:,0], newtimes)
     yq = interp.barycentric_interpolate(times, waypts[:,1], newtimes)
     zq = interp.barycentric_interpolate(times, waypts[:,2], newtimes)
+    #else:
+    #    print(times)
+    #    print(waypts)
+    #    print(newtimes)
+    #    fxq = interp.interp1d(times, waypts[:,0])
+    #    fyq = interp.interp1d(times, waypts[:,1])
+    #    fzq = interp.interp1d(times, waypts[:,2])
+    #    xq = fxq(newtimes)
+    #    yq = fyq(newtimes)
+    #    zq = fzq(newtimes)
+
     start = waypts[0, :]
     end = waypts[-1, :]
     #print(times)
@@ -211,7 +233,8 @@ def _min_snap_init(waypts, speed=1, t=0.0):
     cz = np.linalg.solve(M, z)
     return traj_data(times, dists, totaldist, waypts, cx, cy, cz)
 
-def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False):
+def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, 
+        ret_snap=False, use_splines=True):
     """
     This is not optimized. Waypoint pruning/adding and cubic splining
     the path has not been implemented yet.
@@ -224,9 +247,10 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, ret_snap=False)
     :param traj_vars: object containing the persistent vars
     :param waypts: set of N waypts we want to hit (Nx3 matrix)
     :param ret_snap: if true, return just the snap, not [pos, vel, acc, yaw, yawdot]
+    :param use_splines: Use cubic splines to smooth the trajectory
     """
     if waypts is not None:  # i.e. waypts passed in, then initialize
-        traj_vars = _min_snap_init(waypts, speed, t)
+        traj_vars = _min_snap_init(waypts, speed, t, use_splines)
         return traj_vars
     # find where we are in the trajectory
     if traj_vars is None:

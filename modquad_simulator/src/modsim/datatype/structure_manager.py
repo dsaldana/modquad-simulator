@@ -195,22 +195,26 @@ class StructureManager:
         xx2 = np.copy(struc2.xx)
         yy2 = np.copy(struc2.yy)
 
-        ydiff = y2 - y1
         xdiff = x2 - x1
+        ydiff = y2 - y1
 
         # Shift the struc2 coordinates to match the center of mass of struc1
         # Directions of adj as per dock_detector.py: up 1, right 2, left 4, down 3
         if direction == 2:
+            xx2 += xdiff
             yy2 += y1 + params.cage_width
         elif direction == 1:
-            xx2 += x1 + params.cage_width
+            xx2 -= x1 - params.cage_width
+            yy2 += ydiff
         elif direction == 4:
+            xx2 += xdiff
             yy2 -= y1 - params.cage_width
         else: #direction == 3
-            xx2 -= x1 - params.cage_width
+            xx2 += x1 + params.cage_width
+            yy2 += ydiff
 
         xx = np.hstack((struc1.xx, xx2))
-        yy = np.hstack((struc1.xx, yy2))
+        yy = np.hstack((struc1.yy, yy2))
         mids = struc1.ids + struc2.ids
         fails = struc1.motor_failure + struc2.motor_failure
 
@@ -227,12 +231,12 @@ class StructureManager:
 
         ###### TEMPORARY TRAJECTORY
         newstruc.traj_vars = traj_func(t, rospy.get_param("structure_speed", 0.5), None,
-                waypt_gen.line(newstruc.state_vector[:3], newstruc.state_vector[:3]+1.0))
+                waypt_gen.line(newstruc.state_vector[:3], newstruc.state_vector[:3]+1.1))
 
-        print("New structure is the following: ")
-        print(newstruc.ids)
-        print(newstruc.xx)
-        print(newstruc.yy)
+        #print("New structure is the following: ")
+        #print(newstruc.ids)
+        #print(newstruc.xx)
+        #print(newstruc.yy)
 
         # Delete the old structures
         _, _ = self.del_struc(struc1)

@@ -37,6 +37,7 @@ class AssemblyManager:
         self.trajectory_function = traj_func
         self.dockings = None
         self.n = rospy.get_param("num_used_robots", 2)
+        self.next_plan_z = True
 
     def find_assembly_tree(struc_mgr):
         pass
@@ -81,12 +82,113 @@ class AssemblyManager:
         """
         Handles when to perform the next assembly
         """
-        if t >= self.time_for_disassembly:
+        if t >= self.next_time_to_plan:
             ret = self.plan_next_assembly_set(struc_mgr, t)
             self.time_for_assembly += self.reserve_time
             print("Joins at t = {}, ind = {}".format(t, ind))
             return ret is None
         return False
+
+    def generate_assembly_order(self, struc_mgr):
+        pass
+
+    #def plan_next_trajs(self, t, struc_mgr, modid1, modid2, adj_dir, zlayer, traj_func):
+    #    pl
+
+    def plan_next_xy_motion(self, t, struc_mgr, modid1, modid2, adj_dir, traj_func):
+        speed = rospy.get_param("structure_speed", 1.0)
+        speed = 0.5
+        struc1 = struc_mgr.find_struc_of_mod(modid1)
+        struc2 = struc_mgr.find_struc_of_mod(modid2)
+
+        # Start new trajectory where the structures currently are
+        #waypts1 = [np.copy(struc1.state_vector[:3])]
+        waypts2 = [np.copy(struc2.state_vector[:3])]
+        zpos = struc2.state_vector[2]
+
+        # We need to check that the structures are oriented relative 
+        #  to each other correctly, and if not move them
+        i1 = struc1.ids.index('modquad{:02d}'.format(modid1))
+        i2 = struc2.ids.index('modquad{:02d}'.format(modid2))
+        x1 = struc1.xx[i1]
+        y1 = struc1.yy[i1]
+        x2 = struc2.xx[i2]
+        y2 = struc2.yy[i2]
+        s1x = struc1.state_vector[0]
+        s1y = struc1.state_vector[1]
+        s2x = struc2.state_vector[0]
+        s2y = struc2.state_vector[1]
+
+        # World frame pos of modid1
+        x1w = x1 + s1x
+        y1w = y1 + s1y
+
+        # Where struc2 should end up relative to struc1
+        desire_x = 0.0 
+        desire_y = 0.0
+
+        # Whether strucs are facing right way for linear trajs to connect them
+        oriented = False
+
+        # Compute whether oriented and what desired x,y for struc2 are
+        if adj_dir == 'up':
+            oriented = y1 < y2
+            desire_x = x1w
+            desire_y = y1w + params.cage_width
+        elif adj_dir == 'down':
+            oriented = y1 > y2
+            desire_x = x1w
+            desire_y = y1w - params.cage_width
+        elif adj_dir == 'left':
+            oriented = x1 > x2
+            desire_x = x1w - params.cage_width
+            desire_y = y1w
+        else: #adj_dir == 'right'
+            oriented = x1 < x2
+            desire_x = x1w - params.cage_width
+            desire_y = y1w
+
+        # Get desired pos of center of mass of struc 2 
+        desire_x -= x2
+        desire_y -= y2
+
+        if not oriented:
+            pass # TODO plan trajectory so that oriented
+
+        # Finally, we want them to come together and attach
+        # struc1 stays stationary, struc 2 moves in
+        waypts2.append([desire_x, desire_y, zpos])
+
+        #struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
+        struc2.traj_vars = traj_func(t, speed, None, np.array(waypts2))
+
+        # Next time we are ready, plan the z motion
+        self.next_plan_z = True
+
+    def plan_next_z_motion(self, t, struc_mgr, modid1, modid2, zlayer, traj_func):
+        speed = rospy.get_param("structure_speed", 1.0)
+        speed = 0.5
+        struc1 = struc_mgr.find_struc_of_mod(modid1)
+        struc2 = struc_mgr.find_struc_of_mod(modid2)
+
+        # Start new trajectory where the structures currently are
+        waypts1 = [np.copy(struc1.state_vector[:3])]
+        waypts2 = [np.copy(struc2.state_vector[:3])]
+
+        # Move them to be at the same z height
+        nextpt1 = np.copy(struc1.state_vector[:3])
+        nextpt1 += [0.1, 0.1, zlayer - struc1.state_vector[2]]
+        waypts1.append(nextpt1)
+        nextpt2 = np.copy(struc2.state_vector[:3])
+        nextpt2 += [0.1, 0.1, zlayer - struc2.state_vector[2]]
+        waypts2.append(nextpt2)
+
+        struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
+        struc2.traj_vars = traj_func(t, speed, None, np.array(waypts2))
+
+        self.next_time_to_plan = max([struc1.traj_vars.times[-1], struc2.traj_vars.times[-1]])
+        # At next time to plan, plan xy motion
+        self.next_plan_z = False
 
     def handle_dockings_msg(self, struc_mgr, msg, traj_func, t):
         if self.dockings is None:
@@ -98,7 +200,7 @@ class AssemblyManager:
         else:
             pairs = list(combinations(range(1,self.n+1), 2))
             dock_ind = np.nonzero(dockings)
-            print('-----')
+            #print('-----')
             #print(msg)
             #print(dock_ind)
             for x in dock_ind[0]:
@@ -113,4 +215,4 @@ class AssemblyManager:
                     continue # Already joined the relevant structures
                 struc_mgr.join_strucs(struc1, struc2, pairs[x], msg.data[x], traj_func, t)
             self.dockings = np.array(msg.data) # Contains both new and old dockings
-            print('-----')
+            #print('-----')
