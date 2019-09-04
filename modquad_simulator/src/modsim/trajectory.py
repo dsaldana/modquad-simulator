@@ -120,9 +120,9 @@ def _min_snap_init(waypts, speed=1, t=0.0, use_splines=True):
     #print("cumdist = {}".format(cumdist))
     #for i in range(len(dists)):
     #    print("\tnt = {}".format(dists[i] / totaldist * t_max))
-    #times = [0] + [dists[i] / totaldist * t_max for i in range(len(dists))]
-    times = np.array([cumdist[i] / totaldist * t_max for i in range(len(cumdist))])
-    #times = np.cumsum(np.array(times))
+    times = [0] + [dists[i] / totaldist * t_max for i in range(len(dists))]
+    #times = np.array([cumdist[i] / totaldist * t_max for i in range(len(cumdist))])
+    times = np.cumsum(np.array(times))
     times += t
     #sys.exit(0)
     #plt.plot(waypts[:, 0], waypts[:, 1])

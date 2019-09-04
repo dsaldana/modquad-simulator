@@ -116,7 +116,7 @@ def simulate(pi, trajectory_function):
     ########### Simulator ##############
     # Time based on avg desired speed (actual speed *not* constant)
     tmax = 20.0
-    overtime = 1.5
+    overtime = 5.5
 
     # Params
     freq = 100   # 100hz
@@ -174,9 +174,9 @@ if __name__ == '__main__':
     traj2 = trajectory_function(0, speed, None, 
             waypt_gen.line([ 1,  0,0], [ m*params.cage_width, 0, 1]))
     traj3 = trajectory_function(0, speed, None, 
-            waypt_gen.line([ 4, -1,0], [4, -m*params.cage_width, 1]))
+            waypt_gen.line([-4, -1,0], [-4, -m*params.cage_width, 1]))
     traj4 = trajectory_function(0, speed, None, 
-            waypt_gen.line([ 4,  1,0], [4,  m*params.cage_width, 1]))
+            waypt_gen.line([-4,  1,0], [-4,  m*params.cage_width, 1]))
     #print(traj1.times)
     #print(traj1.waypts)
     print('--------------------------')

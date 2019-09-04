@@ -210,7 +210,7 @@ class StructureManager:
             xx2 += xdiff
             yy2 -= y1 - params.cage_width
         else: #direction == 3
-            xx2 += x1 + params.cage_width
+            xx2 -= x1 - params.cage_width
             yy2 += ydiff
 
         xx = np.hstack((struc1.xx, xx2))

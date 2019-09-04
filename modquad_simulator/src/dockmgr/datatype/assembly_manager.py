@@ -24,8 +24,8 @@ import modquad_sched_interface.waypt_gen as waypt_gen
 
 class AssemblyManager:
     """
-    Given structure, disassembly map, and current time t
-    Plan: At what time which disassemblies happen
+    Given structure to assemble, current structures, and current time t
+    Plan: At what time which assemblies happen
           Waypoints for structures to go to to avoid collision
     """
     def __init__(self, start_time, final_struc_mat, traj_func):
@@ -68,7 +68,6 @@ class AssemblyManager:
                     t, speed, None, 
                     waypt_gen.line(np.copy(cur_locp[1]), np.copy(new_loc[1])))
 
-
             # Set paths of the two substructures in the struc_mgr
 
             # Print new strucs
@@ -108,12 +107,12 @@ class AssemblyManager:
 
         # We need to check that the structures are oriented relative 
         #  to each other correctly, and if not move them
-        i1 = struc1.ids.index('modquad{:02d}'.format(modid1))
-        i2 = struc2.ids.index('modquad{:02d}'.format(modid2))
-        x1 = struc1.xx[i1]
-        y1 = struc1.yy[i1]
-        x2 = struc2.xx[i2]
-        y2 = struc2.yy[i2]
+        i1  = struc1.ids.index('modquad{:02d}'.format(modid1))
+        i2  = struc2.ids.index('modquad{:02d}'.format(modid2))
+        x1  = struc1.xx[i1]
+        y1  = struc1.yy[i1]
+        x2  = struc2.xx[i2]
+        y2  = struc2.yy[i2]
         s1x = struc1.state_vector[0]
         s1y = struc1.state_vector[1]
         s2x = struc2.state_vector[0]
@@ -130,37 +129,70 @@ class AssemblyManager:
         # Whether strucs are facing right way for linear trajs to connect them
         oriented = False
 
+        print("Trying to connect {}-{} in dir {}".format(modid1, modid2, adj_dir))
+
         # Compute whether oriented and what desired x,y for struc2 are
         if adj_dir == 'up':
-            oriented = y1 < y2
+            oriented = y1 < y2 and abs(x2 - x1) > 0.1
             desire_x = x1w
             desire_y = y1w + params.cage_width
         elif adj_dir == 'down':
-            oriented = y1 > y2
+            oriented = y1 > y2 and abs(x2 - x1) > 0.1
             desire_x = x1w
             desire_y = y1w - params.cage_width
         elif adj_dir == 'left':
-            oriented = x1 > x2
+            oriented = x1 > x2 and abs(y2 - y1) > 0.1
             desire_x = x1w - params.cage_width
             desire_y = y1w
         else: #adj_dir == 'right'
-            oriented = x1 < x2
+            oriented = x1 < x2 and abs(y2 - y1) > 0.1
             desire_x = x1w - params.cage_width
             desire_y = y1w
 
         # Get desired pos of center of mass of struc 2 
         desire_x -= x2
         desire_y -= y2
+        desire_pos = np.array([desire_x, desire_y, zpos])
 
+        # Current state
+        curstate = struc2.state_vector[:3]
+
+        print('oriented: {}'.format(oriented))
         if not oriented:
-            pass # TODO plan trajectory so that oriented
+            berth = 1.0
+            if adj_dir == 'up':
+                waypts2.append([curstate[0] - berth, curstate[1], zpos])
+                waypts2.append([curstate[0] - berth, desire_y + berth, zpos])
+                waypts2.append([desire_x, desire_y + berth, zpos])
+            elif adj_dir == 'down':
+                waypts2.append([curstate[0] + berth, curstate[1], zpos])
+                waypts2.append([curstate[0] + berth, desire_y - berth, zpos])
+                waypts2.append([desire_x, desire_y - berth, zpos])
+            elif adj_dir == 'left':
+                waypts2.append([curstate[0], curstate[1] + berth, zpos])
+                waypts2.append([desire_x - berth, curstate[1] + berth, zpos])
+                waypts2.append([desire_x - berth, desire_y, zpos])
+            elif adj_dir == 'right':
+                waypts2.append([curstate[0], curstate[1] - berth, zpos])
+                waypts2.append([desire_x + berth, curstate[1] - berth, zpos])
+                waypts2.append([desire_x + berth, desire_y, zpos])
 
         # Finally, we want them to come together and attach
         # struc1 stays stationary, struc 2 moves in
-        waypts2.append([desire_x, desire_y, zpos])
+        waypts2.append(desire_pos)
+
+        #print("struc1 pos: {}".format(struc1.state_vector[:3]))
+        #print('-------------')
+        #print("struc2 pos: {}".format(struc2.state_vector[:3]))
+        #print('-------------')
+        #print("struc2 desire pos: {}".format(desire_pos))
+        #print('-------------')
+        #print("2nd set of waypts: \n{}".format(np.array(waypts2)))
 
         #struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
         struc2.traj_vars = traj_func(t, speed, None, np.array(waypts2))
+        #print(struc2.traj_vars.times)
+        #print(struc2.traj_vars.waypts)
 
         # Next time we are ready, plan the z motion
         self.next_plan_z = True
