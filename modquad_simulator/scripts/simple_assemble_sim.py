@@ -44,8 +44,12 @@ from scheduler.reconfigure import reconfigure
 thrust_newtons, roll, pitch, yaw = 0., 0., 0., 0.
 num_mod = 2
 
+global assembler, struc_mgr
 assembler = None
 dislocation_srv = (0., 0.)
+struc_mgr = None
+traj_func = min_snap_trajectory
+t = 0.0 # current time
 
 # Control input callback
 #def control_input_listener(twist_msg):
@@ -73,15 +77,15 @@ dislocation_srv = (0., 0.)
 #    return DislocationResponse()  # Return nothing
 
 def docking_callback(msg):
-    global assembler
+    global assembler, struc_mgr, traj_func, t
     if assembler is not None:
-        assembler.handle_dockings_msg(msg)
+        assembler.handle_dockings_msg(struc_mgr, msg, traj_func, t)
     else:
         raise ValueError("Assembler object does not exist")
 
-def simulate(struc_mgr, trajectory_function):
+def simulate(trajectory_function):
     #global dislocation_srv, thrust_newtons, roll, pitch, yaw
-    global assembler
+    global assembler, struc_mgr, t
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
     rids = [robot_id1]
@@ -136,9 +140,10 @@ def simulate(struc_mgr, trajectory_function):
                 odom_publishers, tf_broadcaster)
 
     # Once everything is done, plot the desired vs. actual positions
-    struc_mgr.make_plots()
+    #struc_mgr.make_plots()
 
 if __name__ == '__main__':
+    global struc_mgr
     print("Starting Assembly Simulation")
     rospy.set_param('structure_speed', 0.5)
 
@@ -148,9 +153,11 @@ if __name__ == '__main__':
     rospy.set_param('num_used_robots', 2)
 
     # Generate trajectories that will put the quads w/i attaching distance
-    m = 0.5 # Spacing factor
-    traj1 = trajectory_function(0, speed, None, waypt_gen.line([0,-1,0], [0,-m*params.cage_width,1]))
-    traj2 = trajectory_function(0, speed, None, waypt_gen.line([0, 1,0], [0, m*params.cage_width,1]))
+    m = 0.85 # Spacing factor
+    traj1 = trajectory_function(0, speed, None, 
+            waypt_gen.line([-1, 0,0], [-m*params.cage_width, 0, 1]))
+    traj2 = trajectory_function(0, speed, None, 
+            waypt_gen.line([1, 0,0], [ m*params.cage_width, 0, 1]))
     print(traj1.times)
     print(traj1.waypts)
     print('--------------------------')
@@ -170,4 +177,4 @@ if __name__ == '__main__':
     struc_mgr = StructureManager(strucs)
 
     # 8. Run the simulation of the breakup and reassembly
-    simulate(struc_mgr, trajectory_function)
+    simulate(trajectory_function)

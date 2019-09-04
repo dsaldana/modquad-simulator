@@ -88,7 +88,7 @@ class AssemblyManager:
             return ret is None
         return False
 
-    def handle_dockings_msg(self, msg):
+    def handle_dockings_msg(self, struc_mgr, msg, traj_func, t):
         if self.dockings is None:
             self.dockings = np.array(msg.data)
             return
@@ -99,9 +99,18 @@ class AssemblyManager:
             pairs = list(combinations(range(1,self.n+1), 2))
             dock_ind = np.nonzero(dockings)
             print('-----')
-            print(msg)
-            print(dock_ind)
+            #print(msg)
+            #print(dock_ind)
             for x in dock_ind[0]:
-                print("new docking of mods: {}".format(pairs[x]))
-            self.dockings = np.array(msg.data)
+                # Find containing structures of these modules
+                #print("new docking of mods: {}".format(pairs[x]))
+                struc1 = struc_mgr.find_struc_of_mod(pairs[x][0])
+                struc2 = struc_mgr.find_struc_of_mod(pairs[x][1])
+                #print("dock struc with ids: {}".format(struc1.ids))
+                #print("to dock with ids: {}".format(struc2.ids))
+                if struc1.ids == struc2.ids:
+                    #print("\tAlready docked")
+                    continue # Already joined the relevant structures
+                struc_mgr.join_strucs(struc1, struc2, pairs[x], msg.data[x], traj_func, t)
+            self.dockings = np.array(msg.data) # Contains both new and old dockings
             print('-----')

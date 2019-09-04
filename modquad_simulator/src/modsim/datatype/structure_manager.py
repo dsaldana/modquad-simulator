@@ -35,6 +35,7 @@ from dockmgr.datatype.ComponentManager import ComponentManager
 from dockmgr.datatype.OdometryManager import OdometryManager
 
 from modquad_sched_interface.interface import convert_modset_to_struc, convert_struc_to_mat
+import modquad_sched_interface.waypt_gen as waypt_gen
 """
 Uses ComponentManager to manage the structures that are available in
 whatever the current simulation happens to be
@@ -97,7 +98,15 @@ class StructureManager:
             #        thrust_newtons, roll, pitch, yaw))
 
             #self.strucs[i].update_control_params(thrust_newtons, roll, pitch, yaw)
-            self.desired_states_log[i].append(desired_state[0])
+            try:
+                #if len(self.strucs) == 1:
+                #    print(desired_state)
+                #    print(structure.state_vector)
+                #print(i)
+                self.desired_states_log[i].append(desired_state[0])
+            except:
+                # The joining of strucs cause the value of i to be out of range
+                pass
 
             # Control output based on crazyflie input
             F_single, M_single = \
@@ -113,7 +122,15 @@ class StructureManager:
             #       F_structure, M_structure, rotor_forces))
 
             # Simulate
-            self.state_vecs_log[i].append(structure.state_vector[:3])
+            try:
+                #if len(self.strucs) == 1:
+                #    print(desired_state)
+                #    print(structure.state_vector)
+                #print(i)
+                self.state_vecs_log[i].append(structure.state_vector[:3])
+            except:
+                # The joining of strucs cause the value of i to be out of range
+                pass
             structure.state_vector = simulation_step(structure, structure.state_vector, 
                             F_structure, M_structure, 1. / self.freq)
             #if i == 1:
@@ -149,6 +166,94 @@ class StructureManager:
 
         self.desired_states_log += [org_des_stae, copy.copy(org_des_stae)]
         self.state_vecs_log += [org_stt_vecs, copy.copy(org_stt_vecs)]
+
+    def find_struc_of_mod(self, mod_id):
+        mod_id = 'modquad{:02d}'.format(mod_id)
+        struc = [s for s in self.strucs if mod_id in s.ids] # list of len 1
+        return struc[0] # Return structure obj containing the module
+
+    def join_strucs(self, struc1, struc2, ids_pair, direction, traj_func, t):
+        """
+        :param struc1: structure containing ids_pair[0]
+        :param struc2: structure containing ids_pair[1]
+        :param ids_pair: tuple of non-stringified mod ids specifying the join
+        """
+        dirs = {1: 'up', 2: 'right', 3: 'down', 4: 'left'}
+        print("Joining {} and {} in adj dir {}".format(struc1.ids, struc2.ids, dirs[direction]))
+        i = [j for j,v in enumerate(struc1.ids) 
+                if v == 'modquad{:02d}'.format(ids_pair[0])]
+        i = i[0] # Assuming that Structure is properly created, all ids are unique
+        x1 = struc1.xx[i]
+        y1 = struc1.yy[i]
+        i = [j for j,v in enumerate(struc2.ids) 
+                if v == 'modquad{:02d}'.format(ids_pair[1])]
+        i = i[0] # Assuming that Structure is properly created, all ids are unique
+        x2 = struc2.xx[i]
+        y2 = struc2.yy[i]
+        
+        # Define all struc2 mods relative to x, y
+        xx2 = np.copy(struc2.xx)
+        yy2 = np.copy(struc2.yy)
+
+        ydiff = y2 - y1
+        xdiff = x2 - x1
+
+        # Shift the struc2 coordinates to match the center of mass of struc1
+        # Directions of adj as per dock_detector.py: up 1, right 2, left 4, down 3
+        if direction == 2:
+            yy2 += y1 + params.cage_width
+        elif direction == 1:
+            xx2 += x1 + params.cage_width
+        elif direction == 4:
+            yy2 -= y1 - params.cage_width
+        else: #direction == 3
+            xx2 -= x1 - params.cage_width
+
+        xx = np.hstack((struc1.xx, xx2))
+        yy = np.hstack((struc1.xx, yy2))
+        mids = struc1.ids + struc2.ids
+        fails = struc1.motor_failure + struc2.motor_failure
+
+        newstruc = Structure(ids=mids, xx=xx, yy=yy, motor_failure=fails)
+
+        # The index i corresponds to the second new adjacency module
+        center_of_mass_shift_x = newstruc.xx[i] - x2
+        center_of_mass_shift_y = newstruc.yy[i] - y2
+        state_x = struc2.state_vector[0] + center_of_mass_shift_x
+        state_y = struc2.state_vector[1] + center_of_mass_shift_y
+        state_z = struc2.state_vector[2]
+
+        newstruc.state_vector = init_state([state_x, state_y, state_z], 0.0)
+
+        ###### TEMPORARY TRAJECTORY
+        newstruc.traj_vars = traj_func(t, rospy.get_param("structure_speed", 0.5), None,
+                waypt_gen.line(newstruc.state_vector[:3], newstruc.state_vector[:3]+1.0))
+
+        print("New structure is the following: ")
+        print(newstruc.ids)
+        print(newstruc.xx)
+        print(newstruc.yy)
+
+        # Delete the old structures
+        _, _ = self.del_struc(struc1)
+        old_des_states, old_actual_states = self.del_struc(struc2)
+
+        # Add the new structure and assoc. vars to class instance vars
+        self.add_struc(newstruc, old_des_states, old_actual_states)
+
+    def del_struc(self, struc_to_delete):
+        replace_ind = self.strucs.index(struc_to_delete)
+        del self.strucs[replace_ind]
+        org_des_stae = self.desired_states_log[replace_ind]
+        org_stt_vecs = self.state_vecs_log[replace_ind]
+        del self.desired_states_log[replace_ind]
+        del self.state_vecs_log[replace_ind]
+        return org_des_stae, org_stt_vecs
+
+    def add_struc(self, struc_to_add, old_des_state, old_actual_state):
+        self.strucs = self.strucs + [struc_to_add]
+        self.desired_states_log += [old_des_state]
+        self.state_vecs_log += [old_actual_state]
 
     def make_plots(self):
         plt.style.use('dark_background')
