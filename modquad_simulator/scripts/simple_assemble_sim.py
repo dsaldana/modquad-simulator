@@ -42,7 +42,7 @@ from scheduler.reconfigure import reconfigure
 
 ## Control Input
 thrust_newtons, roll, pitch, yaw = 0., 0., 0., 0.
-num_mod = 2
+num_mod = 4
 
 global assembler, struc_mgr
 assembler = None
@@ -143,31 +143,37 @@ def simulate(trajectory_function):
     #struc_mgr.make_plots()
 
 if __name__ == '__main__':
-    global struc_mgr
+    global struc_mgr, num_mod
     print("Starting Assembly Simulation")
     rospy.set_param('structure_speed', 0.5)
 
     trajectory_function = min_snap_trajectory
     speed = 0.5 # m/s
     rospy.set_param('structure_speed', speed)
-    rospy.set_param('num_used_robots', 2)
+    rospy.set_param('num_used_robots', num_mod)
 
     # Generate trajectories that will put the quads w/i attaching distance
     m = 0.85 # Spacing factor
     traj1 = trajectory_function(0, speed, None, 
-            waypt_gen.line([-1, 0,0], [-m*params.cage_width, 0, 1]))
+            waypt_gen.line([-1,  0,0], [-m*params.cage_width, 0, 1]))
     traj2 = trajectory_function(0, speed, None, 
-            waypt_gen.line([1, 0,0], [ m*params.cage_width, 0, 1]))
-    print(traj1.times)
-    print(traj1.waypts)
+            waypt_gen.line([ 1,  0,0], [ m*params.cage_width, 0, 1]))
+    traj3 = trajectory_function(0, speed, None, 
+            waypt_gen.line([ 4, -1,0], [4, -m*params.cage_width, 1]))
+    traj4 = trajectory_function(0, speed, None, 
+            waypt_gen.line([ 4,  1,0], [4,  m*params.cage_width, 1]))
+    #print(traj1.times)
+    #print(traj1.waypts)
     print('--------------------------')
-    print(traj2.times)
-    print(traj2.waypts)
+    #print(traj2.times)
+    #print(traj2.waypts)
 
     # Generate the single-mod structures
     strucs = [Structure(['modquad{:02d}'.format(i+1)], xx=[0.0], yy=[0.0]) for i in range(num_mod)]
     strucs[0].traj_vars = traj1
     strucs[1].traj_vars = traj2
+    strucs[2].traj_vars = traj3
+    strucs[3].traj_vars = traj4
 
     # Initial position of structures should match the first waypt
     for i,s in enumerate(strucs):

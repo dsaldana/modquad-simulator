@@ -3,6 +3,9 @@
 This runs a detector that uses modquad module positions to determine whether 
 a docking action should occur
 """
+#TODO Write service to publish number of used robots, otherwise we have to change
+#    it in multiple files everytime we change it
+
 # Python packages
 import numpy as np
 from itertools import combinations
@@ -22,7 +25,7 @@ from dockmgr.datatype.OdometryManager import OdometryManager
 #In rviz, we have more robots instantiated than we necessarily use, 
 #   so don't use "num_robots"
 #n = rospy.get_param('num_robots', 2)
-n = rospy.get_param('num_used_robots', 2)
+n = rospy.get_param('num_used_robots', 4)
 
 # Docking vector: this vector represents the element of the triangular matrix of matches
 # The number 1,2,3,4 represents if the connection is up, right, down or left respectively.
