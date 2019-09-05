@@ -25,7 +25,7 @@ from dockmgr.datatype.OdometryManager import OdometryManager
 #In rviz, we have more robots instantiated than we necessarily use, 
 #   so don't use "num_robots"
 #n = rospy.get_param('num_robots', 2)
-n = rospy.get_param('num_used_robots', 4)
+n = rospy.get_param('num_used_robots', 2)
 
 # Docking vector: this vector represents the element of the triangular matrix of matches
 # The number 1,2,3,4 represents if the connection is up, right, down or left respectively.
@@ -143,7 +143,7 @@ def detect_dockings():
 
         # Create the package based on odometry
         docking_array = compute_docking_array(np.array(locations), n, docking_d,min_z_diff)
-        docking_array = overwrite_manual_docking(docking_array)
+        #docking_array = overwrite_manual_docking(docking_array)
 
         # Publish
         msg = Int8MultiArray()

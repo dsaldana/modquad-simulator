@@ -178,8 +178,10 @@ class StructureManager:
         :param struc2: structure containing ids_pair[1]
         :param ids_pair: tuple of non-stringified mod ids specifying the join
         """
-        dirs = {1: 'up', 2: 'right', 3: 'down', 4: 'left'}
+        dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
         print("Joining {} and {} in adj dir {}".format(struc1.ids, struc2.ids, dirs[direction]))
+        print(struc1.ids)
+        print(struc2.ids)
         i = [j for j,v in enumerate(struc1.ids) 
                 if v == 'modquad{:02d}'.format(ids_pair[0])]
         i = i[0] # Assuming that Structure is properly created, all ids are unique
@@ -199,12 +201,12 @@ class StructureManager:
         ydiff = y2 - y1
 
         # Shift the struc2 coordinates to match the center of mass of struc1
-        # Directions of adj as per dock_detector.py: up 1, right 2, left 4, down 3
+        #      dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
         if direction == 2:
             xx2 += xdiff
             yy2 += y1 + params.cage_width
         elif direction == 1:
-            xx2 -= x1 - params.cage_width
+            xx2 += x1 + params.cage_width
             yy2 += ydiff
         elif direction == 4:
             xx2 += xdiff
@@ -231,12 +233,12 @@ class StructureManager:
 
         ###### TEMPORARY TRAJECTORY
         newstruc.traj_vars = traj_func(t, rospy.get_param("structure_speed", 0.5), None,
-                waypt_gen.line(newstruc.state_vector[:3], newstruc.state_vector[:3]+1.1))
+                waypt_gen.line(newstruc.state_vector[:3], newstruc.state_vector[:3]+0.1))
 
-        #print("New structure is the following: ")
-        #print(newstruc.ids)
-        #print(newstruc.xx)
-        #print(newstruc.yy)
+        print("New structure is the following: ")
+        print(newstruc.ids)
+        print(newstruc.xx)
+        print(newstruc.yy)
 
         # Delete the old structures
         _, _ = self.del_struc(struc1)

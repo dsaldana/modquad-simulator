@@ -41,7 +41,7 @@ import modquad_sched_interface.structure_gen as structure_gen
 from scheduler.gsolver import gsolve
 from scheduler.reconfigure import reconfigure
 
-num_mod = 9
+num_mod = 2
 assembler = None
 dislocation_srv = (0., 0.)
 struc_mgr = None
@@ -64,7 +64,7 @@ def simulate(pi, trajectory_function):
 
     demo_trajectory = rospy.get_param('~demo_trajectory', True)
 
-    speed = rospy.get_param('structure_speed', 1.0)
+    speed = rospy.get_param('structure_speed', 0.55)
     rospy.set_param('opmode', 'normal')
     rospy.set_param('rotor_map', 2) # So that modquad_torque_control knows which mapping to use
     rospy.set_param('num_used_robots', num_mod)
@@ -137,7 +137,8 @@ def test_assembly(mset1, wayptset):
     # Setup
     trajectory_function = min_snap_trajectory
     traj_vars = trajectory_function(0, speed, None, wayptset)
-    gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
+    #gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
+    mset1.pi = np.array([[0],[1]])
 
     # Generate all nine structures as individual modules and make struc_mgr
     # Note that we don't set up the trajectory for these
@@ -155,5 +156,5 @@ def test_assembly(mset1, wayptset):
 
 if __name__ == '__main__':
     print("Starting Assembly Simulation")
-    rospy.set_param('structure_speed', 0.5)
-    test_assembly(structure_gen.square(3), waypt_gen.line([0,0,0],[10,15,2]))
+    rospy.set_param('structure_speed', 1.0)
+    test_assembly(structure_gen.zero(2,1), waypt_gen.line([0,0,0],[10,15,2]))

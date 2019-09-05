@@ -95,7 +95,7 @@ def simple_waypt_trajectory(t, t_max=30, traj_vars=None, waypts=[], ret_snap=Fal
     return [pos, vel, acc, yaw, yawdot]
 
 
-def _min_snap_init(waypts, speed=1, t=0.0, use_splines=True):
+def _min_snap_init(waypts, speed=0.5, t=0.0, use_splines=True):
     """
     This function is called once at the beginning of the run for min snap trajectory 
     planning, in which we compute coeffs for the equation of motion describing 

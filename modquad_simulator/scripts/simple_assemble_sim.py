@@ -51,31 +51,6 @@ struc_mgr = None
 traj_func = min_snap_trajectory
 t = 0.0 # current time
 
-# Control input callback
-#def control_input_listener(twist_msg):
-#    #global thrust_newtons, roll, pitch, yaw
-#    # For more info, check:
-#    # https://github.com/whoenig/crazyflie_ros
-#    global struc_mgr
-#    if struc_mgr is not None:
-#        struc_mgr.control_input_listener(twist_msg)
-#    #roll = twist_msg.linear.y
-#    #pitch = twist_msg.linear.x
-#    #yaw = twist_msg.angular.z
-#    #thrust_pwm = twist_msg.linear.z
-#
-#    #c1, c2, c3 = -0.6709, 0.1932, 13.0652
-#    #F_g = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
-#    #if F_g<0:
-#    #    F_g = 0
-#
-#    #thrust_newtons = 9.81 * F_g / 1000.  # Force in Newtons
-
-#def dislocate(disloc_msg):
-#    global dislocation_srv
-#    dislocation_srv = (disloc_msg.x, disloc_msg.y)
-#    return DislocationResponse()  # Return nothing
-
 def docking_callback(msg):
     global assembler, struc_mgr, traj_func, t
     if assembler is not None:
@@ -98,13 +73,6 @@ def simulate(pi, trajectory_function):
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
 
-    # service for dislocate the robot
-    #rospy.Service('dislocate_robot', Dislocation, dislocate)
-
-    # Subscribe to control input, note callback is in structure manager
-    # Commenting this makes no difference
-    #[rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener) for robot_id in rids]
-
     # Odom publisher for each modquad node (i.e. each quadrotor)
     odom_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
@@ -125,10 +93,10 @@ def simulate(pi, trajectory_function):
     t = 0
 
     # Make dummy assembler that only handles docking, doesn't plan them
-    assembler = AssemblyManager(0, pi, trajectory_function)
+    assembler = AssemblyManager(0, pi + 1, trajectory_function)
 
     # Given the current structures, plan out order of attachments
-    assembler.generate_assembly_order(struc_mgr) # Note: this is "offline phase"
+    #assembler.generate_assembly_order(struc_mgr) # Note: this is "offline phase"
 
     # Subscribe to /dockings so that you can tell when to combine structures
     rospy.Subscriber('/dockings', Int8MultiArray, docking_callback) 
