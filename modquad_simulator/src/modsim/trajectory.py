@@ -181,7 +181,7 @@ def _min_snap_init(waypts, speed=0.5, t=0.0, use_splines=True):
     z = np.zeros((num_unknown, 1))
     rows = np.arange(0, 4)  # First waypoint modifies these rows
     cols = np.arange(0, 8)  # and these columns
-    np.set_printoptions(precision=1)
+    np.set_printoptions(precision=3)
     np.set_printoptions(suppress=True)
     np.set_printoptions(threshold=sys.maxsize)
     for i in range(0, len(waypts)):

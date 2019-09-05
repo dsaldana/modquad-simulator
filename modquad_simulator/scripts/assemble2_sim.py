@@ -144,7 +144,7 @@ def test_assembly(mset1, wayptset):
     # Note that we don't set up the trajectory for these
     strucs = [Structure(['modquad{:02d}'.format(i+1)], xx=[0.0], yy=[0.0]) for i in range(num_mod)]
     for i,s in enumerate(strucs):
-        s.state_vector = init_state([-i+0.0,0.0,0.0], 0)
+        s.state_vector = init_state([i+0.0,0.0,0.0], 0)
     struc_mgr = StructureManager(strucs)
 
     print("Assemble this structure (No modid = 0 -- that is empty space):")

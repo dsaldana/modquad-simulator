@@ -26,6 +26,8 @@ from scheduler.assembly import assemble
 from modquad_sched_interface.interface import convert_struc_to_mat
 import modquad_sched_interface.waypt_gen as waypt_gen
 
+dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
+
 def extract_mods_from_string(struc_mgr, hashstring, assembly_params, target):
     """
     :param hashstring: the mod_ids BEFORE '_' are struc1, AFTER '_' are struc2
@@ -112,6 +114,7 @@ class AssemblyManager:
         self.next_time_to_plan = float("inf")
         self.next_assemblies = {} # the assemblies for a particular layer
         self.num_next_dockings_achieved = 0
+        self.docked_pairs = []
 
     def plan_assemblies(self, struc_mgr):
         """
@@ -144,10 +147,11 @@ class AssemblyManager:
                 sys.exit(0)
             # Get next pairs of structures to dock and plan the heights to dock them at
             self.next_assemblies = [(string, self.assemblies[string]) for string in self.assemblies if self.assemblies[string][1] == self.assembly_layer]
-            print("At t = {}, set up assemblies: {}".format(t, self.next_assemblies))
             if len(self.next_assemblies) == 0:
+                print("Completed assembly")
                 rospy.set_param("opmode", "normal")
                 return False
+            print("At t = {}, set up assemblies: {}".format(t, self.next_assemblies))
 
             # The z-locations at which the pairs will dock
             zlayers = [i+2 for i in range(len(self.next_assemblies))]
@@ -399,6 +403,8 @@ class AssemblyManager:
         self.next_plan_z = False
 
     def handle_dockings_msg(self, struc_mgr, msg, traj_func, t):
+        global dirs
+        np.set_printoptions(precision=3)
         if self.dockings is None:
             self.dockings = np.array(msg.data)
             return
@@ -406,23 +412,34 @@ class AssemblyManager:
         if np.sum(dockings) == 0:
             return
         else:
-            print("HANDLING A DOCKING MSG: {}".format(msg))
+            #print("HANDLING A DOCKING MSG: {}".format(msg))
             pairs = list(combinations(range(1,self.n+1), 2))
             dock_ind = np.nonzero(dockings)
-            print('-----')
-            print(msg)
-            print("dockings = {}".format(dockings))
-            print("saved dockings = {}".format(self.dockings))
-            print("new dock ind = {}".format(dock_ind))
-            print("pairs = {}".format(pairs))
+            #print(msg)
+            #print("dockings = {}".format(dockings))
+            #print("saved dockings = {}".format(self.dockings))
+            #print("new dock ind = {}".format(dock_ind))
+            #print("pairs = {}".format(pairs))
             self.dockings = dockings # Contains both new and old dockings
             for x in dock_ind[0]:
+                if ( pairs[x] in self.docked_pairs or 
+                    (pairs[x][1], pairs[x][0]) in self.docked_pairs):
+                    # Only handle new dockings
+                    continue
+                else:
+                    self.docked_pairs.append(pairs[x])
+                print('-----')
+                print("new docking of strucs with mods: {}".format(pairs[x]))
                 # Find containing structures of these modules
-                print("new docking of mods: {}".format(pairs[x]))
                 p1 = struc_mgr.find_struc_of_mod(pairs[x][0])
                 p2 = struc_mgr.find_struc_of_mod(pairs[x][1])
-                print("dock struc with ids: {}".format(p1.ids))
-                print("to dock with ids: {}".format(p2.ids))
+                print("States of the now-docked structures")
+                print(convert_struc_to_mat(p1.ids, p1.xx, p1.yy))
+                print("\t{}".format(p1.state_vector[:3]))
+                print(convert_struc_to_mat(p2.ids, p2.xx, p2.yy))
+                print("\t{}".format(p2.state_vector[:3]))
+                #print("dock struc with ids: {}".format(p1.ids))
+                #print("to dock with ids: {}".format(p2.ids))
                 if p1.ids == p2.ids:
                     continue # Already joined the relevant structures
 
@@ -450,18 +467,21 @@ class AssemblyManager:
                     p2_nums = [p2m[i] for i in zip(*np.nonzero(p2m))]
                     p2str = ','.join(str(int(num)) for num in sorted(p2_nums))
                 
-                hashstring = '_'.join([p1str, p2str])
+
+                if dirs[dockings[x]] == 'up' or dirs[dockings[x]] == 'left':
+                    hashstring = '_'.join([p2str, p1str])
+                else:
+                    hashstring = '_'.join([p1str, p2str])
 
                 # Updates
-                print(x)
-                print(dock_ind)
-                print(p1.ids, p2.ids)
-                print(dockings[x])
-                print(t)
+                #print(x)
+                #print(dock_ind)
+                #print(p1.ids, p2.ids)
+                print("Docking direction detected at t = {}: {}".format(t, dockings[x]))
                 struc_mgr.join_strucs(p1, p2, pairs[x], dockings[x], traj_func, t)
                 todel = [i for i,to in enumerate(self.next_assemblies) if to[0] == hashstring]
-                print("Generated hashstring: {}".format(hashstring))
-                print("Deleting these assemblies because complete: {}".format(todel))
+                #print("Generated hashstring: {}".format(hashstring))
+                #print("Deleting these assemblies because complete: {}".format(todel))
                 for i in todel:
                     del self.next_assemblies[i]
                 #self.num_next_dockings_achieved += 1

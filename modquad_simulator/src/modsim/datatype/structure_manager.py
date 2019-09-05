@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# TODO not excessively use np.copy........
+
 import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist
@@ -179,9 +181,7 @@ class StructureManager:
         :param ids_pair: tuple of non-stringified mod ids specifying the join
         """
         dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
-        print("Joining {} and {} in adj dir {}".format(struc1.ids, struc2.ids, dirs[direction]))
-        print(struc1.ids)
-        print(struc2.ids)
+        print("Joining the pair {}, ({} and {}) in adj dir {}".format(ids_pair, struc1.ids, struc2.ids, dirs[direction]))
         i = [j for j,v in enumerate(struc1.ids) 
                 if v == 'modquad{:02d}'.format(ids_pair[0])]
         i = i[0] # Assuming that Structure is properly created, all ids are unique
@@ -196,31 +196,48 @@ class StructureManager:
         # Define all struc2 mods relative to x, y
         xx2 = np.copy(struc2.xx)
         yy2 = np.copy(struc2.yy)
+        print("x1 = {}".format(x1))
+        print("y1 = {}".format(y1))
+        print("old xx1 = {}".format(struc1.xx))
+        print("old yy1 = {}".format(struc1.yy))
+        print('-')
+        print("old xx2 = {}".format(xx2))
+        print("old yy2 = {}".format(yy2))
 
         xdiff = x2 - x1
         ydiff = y2 - y1
+        print('xdiff = {}'.format(xdiff))
+        print('ydiff = {}'.format(ydiff))
+        
 
         # Shift the struc2 coordinates to match the center of mass of struc1
-        #      dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
-        if direction == 2:
-            xx2 += xdiff
-            yy2 += y1 + params.cage_width
-        elif direction == 1:
+        #       dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
+        if direction == 1:
             xx2 += x1 + params.cage_width
+            yy2 += ydiff
+        elif direction == 2:
+            xx2 += xdiff
+            yy2 += (y1 + params.cage_width - ydiff)
+            print("new xx2 = {}".format(xx2))
+            print("new yy2 = {}".format(yy2))
+        elif direction == 3:
+            xx2 -= x1 - params.cage_width
             yy2 += ydiff
         elif direction == 4:
             xx2 += xdiff
-            yy2 -= y1 - params.cage_width
-        else: #direction == 3
-            xx2 -= x1 - params.cage_width
-            yy2 += ydiff
+            yy2 += y1 + params.cage_width
+        else:
+            raise ValueError("Unknown direction of joining")
 
-        xx = np.hstack((struc1.xx, xx2))
-        yy = np.hstack((struc1.yy, yy2))
+        xx = np.hstack((np.copy(struc1.xx), xx2))
+        yy = np.hstack((np.copy(struc1.yy), yy2))
         mids = struc1.ids + struc2.ids
         fails = struc1.motor_failure + struc2.motor_failure
 
         newstruc = Structure(ids=mids, xx=xx, yy=yy, motor_failure=fails)
+        print("centered xx = {}".format(newstruc.xx))
+        print("centered yy = {}".format(newstruc.yy))
+
 
         # The index i corresponds to the second new adjacency module
         center_of_mass_shift_x = newstruc.xx[i] - x2
@@ -233,12 +250,13 @@ class StructureManager:
 
         ###### TEMPORARY TRAJECTORY
         newstruc.traj_vars = traj_func(t, rospy.get_param("structure_speed", 0.5), None,
-                waypt_gen.line(newstruc.state_vector[:3], newstruc.state_vector[:3]+0.1))
+                waypt_gen.line(np.copy(newstruc.state_vector[:3]), np.copy(newstruc.state_vector[:3]+0.1)))
 
         print("New structure is the following: ")
         print(newstruc.ids)
         print(newstruc.xx)
         print(newstruc.yy)
+        print(convert_struc_to_mat(newstruc.ids, newstruc.xx, newstruc.yy))
 
         # Delete the old structures
         _, _ = self.del_struc(struc1)
@@ -262,6 +280,8 @@ class StructureManager:
         self.state_vecs_log += [old_actual_state]
 
     def make_plots(self):
+        # NOTE This doesn't work yet if you join structures
+        # - Works if all you do is disassemble a structure or not (dis)assemble at all
         plt.style.use('dark_background')
         tstep = 1.0 / self.freq
         fig = plt.figure()
