@@ -4,10 +4,6 @@ from math import sin, cos
 import numpy as np
 from math import sqrt
 
-
-# Global var will not work with multiple structures
-#accumulated_error = np.array([0., 0., 0.])
-
 def position_controller(structure, desired_state):
     """
     PD controller to convert from position to accelerations, and accelerations to attitude.
@@ -35,28 +31,28 @@ def position_controller(structure, desired_state):
 
     # Multi mod control params
     if num_mod > 4:
-        xyp =   5.0 #355.0
-        xyd =  90.0 #255.0
-        xyi =   2.5 #145.0
-        zp  =  15.0 #1925.0
-        zd  =  18.0 #  0.0
-        zi  =   2.5 # 45.0
+        xyp =   5.0 
+        xyd =  80.0 
+        xyi =   0.01 
+        zp  =  15.0
+        zd  =  18.0 
+        zi  =   2.5 
     # Control gains for 3-4 mods
     elif num_mod > 2:
-        xyp =  39.0
+        xyp =  29.0
         xyd =  51.0
         xyi =   0.01
-        zp  =  12.0
+        zp  =  13.0
         zd  =  18.0
         zi  =   2.5
     # 1-2 mod control params
     else:
-        xyp =  57.0
-        xyd =  99.0
-        xyi =   0.1 
-        zp  =  12.0
-        zd  =  18.0
-        zi  =   2.5
+        xyp = 0.5 #17.0
+        xyd =83.0 #99.0
+        xyi = 0.0 # 0.1 
+        zp  = 3.0 # 3.0
+        zd  =56.0 #18.0
+        zi  = 0.0 # 2.5
 
     kp1_u, kd1_u, ki1_u = xyp, xyd, xyi #10., 71., .0
     kp2_u, kd2_u, ki2_u = xyp, xyd, xyi #10., 71., .0
@@ -66,7 +62,8 @@ def position_controller(structure, desired_state):
     pos_error = pos_des - pos
     vel_error = vel_des - vel
     structure.pos_accumulated_error += pos_error
-    #print(pos_error)
+    if rospy.get_param("print_pos_error", 0) == 1:
+        print(structure.ids, pos_error)
 
     # Desired acceleration
     r1_acc = kp1_u * pos_error[0] + kd1_u * vel_error[0] + acc_des[0] + ki1_u * structure.pos_accumulated_error[0]

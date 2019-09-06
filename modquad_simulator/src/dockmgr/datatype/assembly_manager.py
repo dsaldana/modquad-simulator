@@ -27,6 +27,8 @@ from modquad_sched_interface.interface import convert_struc_to_mat
 import modquad_sched_interface.waypt_gen as waypt_gen
 
 dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
+berth = 0.65
+offset = 0.05
 
 def extract_mods_from_string(struc_mgr, hashstring, assembly_params, target):
     """
@@ -79,12 +81,19 @@ def extract_mods_from_string(struc_mgr, hashstring, assembly_params, target):
         modid2 = target[xy2[0][ind], xy2[1][ind]]
         adj_dir = 'down'
     else: # y assembly
-        col1 = struc1[:, -1]
+        col1 = struc1[:, -1:]
         xy1 = np.where(target == col1)
-        col2 = struc2[:, 0]
+        col2 = struc2[:, 0:1]
         xy2 = np.where(target == col2)
         # Now find a row in which two modules will be adjacent in target
         # Any two indices where the row val is the same are adjacent
+        #print(target)
+        #print(struc1)
+        #print(struc2)
+        #print(col1)
+        #print(xy1)
+        #print(col2)
+        #print(xy2)
         adj_locs = xy1[0] == xy2[0]
         ind = adj_locs.tolist().index(True)
         modid1 = target[xy1[0][ind], xy1[1][ind]]
@@ -125,6 +134,14 @@ class AssemblyManager:
         L = [convert_struc_to_mat(s.ids, s.xx, s.yy) for s in struc_mgr.strucs]
         A = {}
         num_layers, self.assemblies = assemble(A, L, self.mat)
+        print("============= Assembly mappings ============")
+        print("Target: \n{}".format(self.mat))
+        print("Current mats")
+        for ell in L: print(ell)
+        print('---')
+        for x in sorted(A):
+            print("{} | {}".format(x, A[x]))
+        print("============================================")
 
     def start_assembling_at_time(self, t):
         self.next_time_to_plan = t
@@ -139,7 +156,7 @@ class AssemblyManager:
                 if self.num_next_dockings_achieved != len(self.next_assemblies):
                     for i, mapping in enumerate(self.next_assemblies):
                         print("Redoing {}".format(mapping))
-                        sys.exit(0)
+                        #sys.exit(0)
                         modid1, modid2, adj_dir = extract_mods_from_string(struc_mgr, mapping[0], mapping[1][0], self.mat)
                         self.plan_corrective_motion(t, struc_mgr, modid1, modid2, adj_dir, self.trajectory_function)
                     return True
@@ -148,6 +165,10 @@ class AssemblyManager:
             # Get next pairs of structures to dock and plan the heights to dock them at
             self.next_assemblies = [(string, self.assemblies[string]) for string in self.assemblies if self.assemblies[string][1] == self.assembly_layer]
             if len(self.next_assemblies) == 0:
+                if rospy.get_param("reset_docking") == 1:
+                    self.dockings = None
+                    print("Wait for docking reset")
+                    return True
                 print("Completed assembly")
                 rospy.set_param("opmode", "normal")
                 return False
@@ -155,13 +176,14 @@ class AssemblyManager:
 
             # The z-locations at which the pairs will dock
             zlayers = [i+2 for i in range(len(self.next_assemblies))]
-            no_action_z = 1.0 # z layer on which those mods not engaged in this assembly stay
             
             for i, mapping in enumerate(self.next_assemblies):
                 modid1, modid2, _ = extract_mods_from_string(struc_mgr, mapping[0], mapping[1][0], self.mat)
                 self.plan_next_z_motion(t, struc_mgr, modid1, modid2, zlayers[i], self.trajectory_function)
 
             self.assembly_layer += 1
+            if self.assembly_layer == 4:
+                rospy.set_param("print_pos_error", 1)
             return True
 
         elif t >= self.next_time_to_plan:
@@ -173,14 +195,12 @@ class AssemblyManager:
         return False
 
     def plan_corrective_motion(self, t, struc_mgr, modid1, modid2, adj_dir, traj_func):
+        global berth, offset
         speed = rospy.get_param("structure_speed", 0.5)
         struc1 = struc_mgr.find_struc_of_mod(modid1)
         struc2 = struc_mgr.find_struc_of_mod(modid2)
         if struc1.ids == struc2.ids:
             return
-
-        # Start new trajectory where the structures currently are
-        waypts2 = [np.copy(struc2.state_vector[:3])]
 
         # Want to be on same level as struc1, even if it moved a bit
         zpos = struc1.state_vector[2]
@@ -230,6 +250,18 @@ class AssemblyManager:
         # Current state
         curstate = struc2.state_vector[:3]
 
+        # Start new trajectory where the structures currently are
+        waypts2 = [curstate]
+
+        if adj_dir == 'up':
+            waypts2.append([desire_x, desire_y + berth*0.30, zpos+0.25])
+        elif adj_dir == 'down':
+            waypts2.append([desire_x, desire_y - berth*0.30, zpos+0.25])
+        elif adj_dir == 'left':
+            waypts2.append([desire_x - berth*0.30, desire_y, zpos+0.25])
+        else:
+            waypts2.append([desire_x + berth*0.30, desire_y, zpos+0.25])
+
         # Finally, we want them to come together and attach
         # struc1 stays stationary, struc 2 moves in
         waypts2.append(desire_pos)
@@ -240,7 +272,8 @@ class AssemblyManager:
             self.next_time_to_plan = struc2.traj_vars.times[-1]
 
     def plan_next_xy_motion(self, t, struc_mgr, modid1, modid2, adj_dir, traj_func):
-        speed = rospy.get_param("structure_speed", 0.5)
+        global berth, offset
+        speed = 1.00 #rospy.get_param("structure_speed", 0.3)
         struc1 = struc_mgr.find_struc_of_mod(modid1)
         struc2 = struc_mgr.find_struc_of_mod(modid2)
 
@@ -303,9 +336,7 @@ class AssemblyManager:
         # Current state
         curstate = struc2.state_vector[:3]
 
-        print('oriented: {}'.format(oriented))
-        berth = 0.5
-        offset = 0.05
+        #print('oriented: {}'.format(oriented))
         if not oriented:
             if adj_dir == 'up':
                 waypts2.append([curstate[0]+offset, curstate[1]+berth, zpos])
@@ -328,40 +359,44 @@ class AssemblyManager:
 
         if adj_dir == 'up':
             waypts2.append([desire_x, desire_y + berth    , zpos])
-            waypts2.append([desire_x, desire_y + berth/2.0, zpos])
-            waypts2.append([desire_x, desire_y + berth/3.0, zpos])
-            waypts2.append([desire_x, desire_y + berth/4.0, zpos])
-            waypts2.append([desire_x, desire_y + berth/5.0, zpos])
+            waypts2.append([desire_x, desire_y + berth*0.75, zpos])
+            waypts2.append([desire_x, desire_y + berth*0.50, zpos])
+            #waypts2.append([desire_x, desire_y + berth/3.0, zpos])
+            #waypts2.append([desire_x, desire_y + berth/4.0, zpos])
+            #waypts2.append([desire_x, desire_y + berth/5.0, zpos])
         elif adj_dir == 'down':
             waypts2.append([desire_x, desire_y - berth    , zpos])
-            waypts2.append([desire_x, desire_y - berth/2.0, zpos])
-            waypts2.append([desire_x, desire_y - berth/3.0, zpos])
-            waypts2.append([desire_x, desire_y - berth/4.0, zpos])
-            waypts2.append([desire_x, desire_y - berth/5.0, zpos])
+            waypts2.append([desire_x, desire_y - berth*0.75, zpos])
+            waypts2.append([desire_x, desire_y - berth*0.50, zpos])
+            #waypts2.append([desire_x, desire_y - berth/3.0, zpos])
+            #waypts2.append([desire_x, desire_y - berth/4.0, zpos])
+            #waypts2.append([desire_x, desire_y - berth/5.0, zpos])
         elif adj_dir == 'left':
             waypts2.append([desire_x - berth    , desire_y, zpos])
-            waypts2.append([desire_x - berth/2.0, desire_y, zpos])
-            waypts2.append([desire_x - berth/3.0, desire_y, zpos])
-            waypts2.append([desire_x - berth/4.0, desire_y, zpos])
-            waypts2.append([desire_x - berth/5.0, desire_y, zpos])
+            waypts2.append([desire_x - berth*0.75, desire_y, zpos])
+            waypts2.append([desire_x - berth*0.50, desire_y, zpos])
+            #waypts2.append([desire_x - berth/3.0, desire_y, zpos])
+            #waypts2.append([desire_x - berth/4.0, desire_y, zpos])
+            #waypts2.append([desire_x - berth/5.0, desire_y, zpos])
         else:
             waypts2.append([desire_x + berth    , desire_y, zpos])
-            waypts2.append([desire_x + berth/2.0, desire_y, zpos])
-            waypts2.append([desire_x + berth/3.0, desire_y, zpos])
-            waypts2.append([desire_x + berth/4.0, desire_y, zpos])
-            waypts2.append([desire_x + berth/5.0, desire_y, zpos])
+            waypts2.append([desire_x + berth*0.75, desire_y, zpos])
+            waypts2.append([desire_x + berth*0.50, desire_y, zpos])
+            #waypts2.append([desire_x + berth/3.0, desire_y, zpos])
+            #waypts2.append([desire_x + berth/4.0, desire_y, zpos])
+            #waypts2.append([desire_x + berth/5.0, desire_y, zpos])
 
         # Finally, we want them to come together and attach
         # struc1 stays stationary, struc 2 moves in
         waypts2.append(desire_pos)
 
-        print("struc1 pos: {}".format(struc1.state_vector[:3]))
-        print('-------------')
-        print("struc2 pos: {}".format(struc2.state_vector[:3]))
-        print('-------------')
-        print("struc2 desire pos: {}".format(desire_pos))
-        print('-------------')
-        print("2nd set of waypts: \n{}".format(np.array(waypts2)))
+        #print("struc1 pos: {}".format(struc1.state_vector[:3]))
+        #print('-------------')
+        #print("struc2 pos: {}".format(struc2.state_vector[:3]))
+        #print('-------------')
+        #print("struc2 desire pos: {}".format(desire_pos))
+        #print('-------------')
+        #print("2nd set of waypts: \n{}".format(np.array(waypts2)))
 
         #struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
         struc2.traj_vars = traj_func(t, speed, None, np.array(waypts2))
@@ -371,12 +406,13 @@ class AssemblyManager:
         next_time_to_plan = max([struc1.traj_vars.times[-1], struc2.traj_vars.times[-1]])
         if next_time_to_plan > self.next_time_to_plan:
             self.next_time_to_plan = next_time_to_plan
+        print("Planned xy, t = {}, projected finish t = {}".format(t, self.next_time_to_plan))
 
         # Next time we are ready, plan the z motion for the next layer
         self.next_plan_z = True
 
     def plan_next_z_motion(self, t, struc_mgr, modid1, modid2, zlayer, traj_func):
-        speed = rospy.get_param("structure_speed", 0.35)
+        speed = rospy.get_param("structure_speed", 1.0)
         struc1 = struc_mgr.find_struc_of_mod(modid1)
         struc2 = struc_mgr.find_struc_of_mod(modid2)
 
@@ -385,11 +421,11 @@ class AssemblyManager:
         waypts2 = [np.copy(struc2.state_vector[:3])]
 
         # Move them to be at the same z height
-        nextpt1 = np.copy(struc1.state_vector[:3])
-        nextpt1 += [0.1, 0.1, zlayer - struc1.state_vector[2]]
+        nextpt1 = np.copy(struc1.state_vector[:3]) + np.array([0.1, 0.1, 0.0])
+        nextpt1[2] = zlayer
         waypts1.append(nextpt1)
-        nextpt2 = np.copy(struc2.state_vector[:3])
-        nextpt2 += [0.1, 0.1, zlayer - struc2.state_vector[2]]
+        nextpt2 = np.copy(struc2.state_vector[:3]) +  np.array([0.1, 0.1, 0.0])
+        nextpt2[2] = zlayer
         waypts2.append(nextpt2)
 
         struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
@@ -401,6 +437,12 @@ class AssemblyManager:
 
         # At next time to plan, plan xy motion
         self.next_plan_z = False
+        #print(struc1.traj_vars.times)
+        #print(struc2.traj_vars.times)
+        print("Finished planning z for height {}".format(zlayer))
+        print("t = {}, projected finish t = {}".format(t, self.next_time_to_plan))
+        print(struc1.traj_vars.waypts)
+        print(struc2.traj_vars.waypts)
 
     def handle_dockings_msg(self, struc_mgr, msg, traj_func, t):
         global dirs
@@ -433,11 +475,11 @@ class AssemblyManager:
                 # Find containing structures of these modules
                 p1 = struc_mgr.find_struc_of_mod(pairs[x][0])
                 p2 = struc_mgr.find_struc_of_mod(pairs[x][1])
-                print("States of the now-docked structures")
-                print(convert_struc_to_mat(p1.ids, p1.xx, p1.yy))
-                print("\t{}".format(p1.state_vector[:3]))
-                print(convert_struc_to_mat(p2.ids, p2.xx, p2.yy))
-                print("\t{}".format(p2.state_vector[:3]))
+                #print("States of the now-docked structures")
+                #print(convert_struc_to_mat(p1.ids, p1.xx, p1.yy))
+                #print("\t{}".format(p1.state_vector[:3]))
+                #print(convert_struc_to_mat(p2.ids, p2.xx, p2.yy))
+                #print("\t{}".format(p2.state_vector[:3]))
                 #print("dock struc with ids: {}".format(p1.ids))
                 #print("to dock with ids: {}".format(p2.ids))
                 if p1.ids == p2.ids:
@@ -468,7 +510,8 @@ class AssemblyManager:
                     p2str = ','.join(str(int(num)) for num in sorted(p2_nums))
                 
 
-                if dirs[dockings[x]] == 'up' or dirs[dockings[x]] == 'left':
+                if (dirs[dockings[x]] == 'up' or dirs[dockings[x]] == 'left' or 
+                    dirs[dockings[x]] == 'down'):
                     hashstring = '_'.join([p2str, p1str])
                 else:
                     hashstring = '_'.join([p1str, p2str])
@@ -477,11 +520,11 @@ class AssemblyManager:
                 #print(x)
                 #print(dock_ind)
                 #print(p1.ids, p2.ids)
-                print("Docking direction detected at t = {}: {}".format(t, dockings[x]))
+                #print("Docking direction detected at t = {}: {}".format(t, dockings[x]))
                 struc_mgr.join_strucs(p1, p2, pairs[x], dockings[x], traj_func, t)
                 todel = [i for i,to in enumerate(self.next_assemblies) if to[0] == hashstring]
-                #print("Generated hashstring: {}".format(hashstring))
-                #print("Deleting these assemblies because complete: {}".format(todel))
+                print("Generated hashstring: {}".format(hashstring))
+                print("Deleting these assemblies because complete: {}".format(todel))
                 for i in todel:
                     del self.next_assemblies[i]
                 #self.num_next_dockings_achieved += 1

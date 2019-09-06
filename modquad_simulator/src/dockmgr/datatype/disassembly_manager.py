@@ -62,7 +62,7 @@ class DisassemblyManager:
         if len(self.next_disassemblies) == 0:
             #speed = 0.75
             print("Disassembly complete, returning to normal op mode")
-            rospy.set_param("opmode", "normal")
+            rospy.set_param("opmode", "assemble")
             return ""
 
         # Plan locations for all structures + the two new ones
@@ -110,6 +110,9 @@ class DisassemblyManager:
                     t, speed, None, 
                     waypt_gen.line(np.copy(cur_locp[1]), np.copy(new_loc[1])))
 
+            for news in new_strucs:
+                print("\tNew struc: {}".format(sorted(news.ids)))
+                print("\t\tHashstring: {}".format(news.gen_hashstring()))
 
             #print("Current loc: {}".format(struc.state_vector[:3]))
             #for i, loc in enumerate(new_loc):

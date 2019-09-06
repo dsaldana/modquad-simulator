@@ -36,38 +36,9 @@ from scheduler.gsolver import gsolve
 from scheduler.reconfigure import reconfigure
 
 
-## Control Input
-thrust_newtons, roll, pitch, yaw = 0., 0., 0., 0.
-
 # Structure Manager
 struc_mgr = None
-
-dislocation_srv = (0., 0.)
-
-# Control input callback
-#def control_input_listener(twist_msg):
-#    #global thrust_newtons, roll, pitch, yaw
-#    # For more info, check:
-#    # https://github.com/whoenig/crazyflie_ros
-#    global struc_mgr
-#    if struc_mgr is not None:
-#        struc_mgr.control_input_listener(twist_msg)
-#    #roll = twist_msg.linear.y
-#    #pitch = twist_msg.linear.x
-#    #yaw = twist_msg.angular.z
-#    #thrust_pwm = twist_msg.linear.z
-#
-#    #c1, c2, c3 = -0.6709, 0.1932, 13.0652
-#    #F_g = ((thrust_pwm / 60000. - c1) / c2) ** 2 - c3  # Force in grams
-#    #if F_g<0:
-#    #    F_g = 0
-#
-#    #thrust_newtons = 9.81 * F_g / 1000.  # Force in Newtons
-
-#def dislocate(disloc_msg):
-#    global dislocation_srv
-#    dislocation_srv = (disloc_msg.x, disloc_msg.y)
-#    return DislocationResponse()  # Return nothing
+inx = 0.1
 
 def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix="", split_dim=0, breakline=1, split_ind=0):
@@ -85,20 +56,21 @@ def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .
     rospy.set_param('opmode', 'normal')
     rospy.set_param('structure_speed', speed)
 
+    # Init structure manager
+    struc_mgr = StructureManager([oldstruc])
+
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
-    # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
-
-    # service for dislocate the robot
-    #rospy.Service('dislocate_robot', Dislocation, dislocate)
-
-    # Subscribe to control input, note callback is in structure manager
-    # Commenting this makes no difference
-    #[rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener) for robot_id in rids]
+    modpos_world_topic = rospy.get_param('world_pos_topic', '/world_pos')
 
     # Odom publisher
     odom_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
-        for id_robot in oldstruc.ids}
+        for struc in struc_mgr.strucs for id_robot in struc.ids}
+
+    # This is purely for docking detection so that absolute world position is known
+    pos_publishers = {id_robot:
+        rospy.Publisher('/' + id_robot + modpos_world_topic, Odometry, queue_size=0)
+        for struc in struc_mgr.strucs for id_robot in struc.ids}
 
     # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
@@ -108,9 +80,6 @@ def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .
     # Location of first structure
     #loc = [init_x, init_y, init_z]
     oldstruc.state_vector = init_state(loc, 0)
-
-    # Init structure manager
-    struc_mgr = StructureManager([oldstruc])
 
     # Time based on avg desired speed (actual speed *not* constant)
     overtime = 3.0
@@ -141,7 +110,7 @@ def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .
         # StructureManager handles doing the actual physics of the simulation for
         # all structures, and hence for all individual modules
         struc_mgr.control_step(t, trajectory_function, speed, 
-                odom_publishers, tf_broadcaster)
+                odom_publishers, pos_publishers, tf_broadcaster)
 
     struc_mgr.make_plots()
 
@@ -159,7 +128,7 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
 
     # 2. introduce fault, which means we need to reconfigure
-    #mset1.fault_rotor(1, 1)
+    mset1.fault_rotor(1, 2)
 
     # 3. Generate the Structure object with the fault
     struc1 = convert_modset_to_struc(mset1)
@@ -170,13 +139,13 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     print('=======================')
 
     # 4. Run the simulation
-    simulate(struc1, trajectory_function, waypts=wayptset, loc=[9,9,9], 
+    simulate(struc1, trajectory_function, waypts=wayptset, loc=[inx,inx,inx], 
             figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
 
 if __name__ == '__main__':
     print("Starting Control Testing Simulation")
     test_undock_along_path(
-                       structure_gen.zero(1, 1), 
+                       structure_gen.zero(2, 1), 
                        #structure_gen.square(1),
-                       waypt_gen.line([9,9,9],[1,2,3]), 
-                       speed=0.3, test_id="control_test")
+                       waypt_gen.line([inx,inx,inx],[inx,inx,3]), 
+                       speed=0.35, test_id="control_test")

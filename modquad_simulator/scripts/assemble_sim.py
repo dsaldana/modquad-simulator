@@ -70,10 +70,16 @@ def simulate(pi, trajectory_function):
     rospy.set_param('num_used_robots', num_mod)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
+    modpos_world_topic = rospy.get_param('world_pos_topic', '/world_pos')
 
     # Odom publisher
     odom_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
+        for struc in struc_mgr.strucs for id_robot in struc.ids}
+
+    # This is purely for docking detection so that absolute world position is known
+    pos_publishers = {id_robot:
+        rospy.Publisher('/' + id_robot + modpos_world_topic, Odometry, queue_size=0)
         for struc in struc_mgr.strucs for id_robot in struc.ids}
 
     # TF publisher
@@ -104,7 +110,7 @@ def simulate(pi, trajectory_function):
     rospy.Subscriber('/dockings', Int8MultiArray, docking_callback) 
 
     docking = False
-    while not rospy.is_shutdown() and t < overtime * tmax:
+    while not rospy.is_shutdown():
         rate.sleep()
         t += 1. / freq
 
@@ -116,7 +122,7 @@ def simulate(pi, trajectory_function):
         # StructureManager handles doing the actual physics of the simulation for
         # all structures, and hence for all individual modules
         struc_mgr.control_step(t, trajectory_function, speed, 
-                odom_publishers, tf_broadcaster)
+                odom_publishers, pos_publishers, tf_broadcaster)
 
         if t > 1.0 and not docking: # Start assembling
             print("Parallelized undocking procedure triggered")
@@ -156,4 +162,6 @@ def test_assembly(mset1, wayptset):
 if __name__ == '__main__':
     print("Starting Assembly Simulation")
     rospy.set_param('structure_speed', 0.5)
+    rospy.set_param("print_pos_error", 0)
     test_assembly(structure_gen.square(3), waypt_gen.line([0,0,0],[10,15,2]))
+

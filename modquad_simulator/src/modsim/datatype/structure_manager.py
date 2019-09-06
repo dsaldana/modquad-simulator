@@ -22,8 +22,9 @@ from modsim.attitude import attitude_controller
 
 from modsim.datatype.structure import Structure
 
-from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
-    publish_transform_stamped_relative
+from modsim.util.comm import publish_odom, publish_transform_stamped, \
+        publish_odom_relative, publish_transform_stamped_relative, \
+        publish_pos
 
 from modsim.util.state import init_state, state_to_quadrotor
 from modsim.util.undocking import gen_strucs_from_split, split_srv_input_format
@@ -50,13 +51,8 @@ def publish_for_attached_mods(robot_id, structure_x, structure_y, xx, yy, main_i
     publish_transform_stamped_relative(robot_id, main_id, structure_x - xx[0], structure_y - yy[0], tf_broadcaster)
 
 def publish_structure_odometry(structure, odom_publishers, tf_broadcaster):
-    #global thrust_newtons, roll, pitch, yaw
     ids, xx, yy, x = structure.ids, structure.xx, structure.yy, structure.state_vector
 
-    # publish main robot
-    #if len(xx) == 1:
-    #    main_id = ids
-    #else:
     main_id = ids[0]
     publish_odom(x, odom_publishers[main_id])
     publish_transform_stamped(main_id, x, tf_broadcaster)
@@ -66,6 +62,23 @@ def publish_structure_odometry(structure, odom_publishers, tf_broadcaster):
         main_id, odom_publishers, tf_broadcaster) 
         for robot_id, structure_x, structure_y in zip(ids, xx, yy)[1:]]
 
+def publish_mod_pos(structure, pos_publishers):
+    ids, xx, yy, x = structure.ids, structure.xx, structure.yy, structure.state_vector
+
+    main_id = ids[0]
+    publish_pos(x, pos_publishers[main_id])
+
+    # Find world pos relative to the main_id and publish
+    # Only the position values are actually used
+    # TODO make more efficient by using custom position message
+    [publish_pos(
+        [x[0] + xval-xx[0], x[1] + yval-yy[0], x[2], # World position
+         0.0, 0.0, 0.0,      # Velocities
+         0.0, 0.0, 0.0, 0.0, # Orientation
+         0.0, 0.0, 0.0],     # Ang vel
+        pos_publishers[idval])
+        for idval, xval, yval in zip(ids, xx, yy)[1:]]
+
 class StructureManager:
     def __init__(self, struclist):
         self.strucs = struclist # init based on those passed in
@@ -74,18 +87,19 @@ class StructureManager:
         self.state_vecs_log = [[] for _ in range(len(self.strucs))]
         self.desired_states_log = [[] for _ in range(len(self.strucs))]
 
-    def control_step(self, t, trajectory_function, speed, odom_publishers, tf_broadcaster):
-        #global thrust_newtons, roll, pitch, yaw
+    def control_step(self, t, trajectory_function, speed, 
+            odom_publishers, pos_publishers, tf_broadcaster):
 
-        #print('-----')
         # NOTE: for some reason loop by value over a zip() does not work
         for i, structure in enumerate(self.strucs):
             #if i != 1 and len(self.strucs) > 1: 
             #    continue
 
             # Publish odometry
-            publish_structure_odometry(structure, \
-                odom_publishers, tf_broadcaster)
+            publish_structure_odometry(structure, odom_publishers, tf_broadcaster)
+
+            # Publish world pos of each mod -- needed for docking detection
+            publish_mod_pos(structure, pos_publishers)
 
             desired_state = trajectory_function(t, speed, structure.traj_vars)
             #if i == 0 and abs(t - 3.0) < 0.05:
@@ -196,36 +210,36 @@ class StructureManager:
         # Define all struc2 mods relative to x, y
         xx2 = np.copy(struc2.xx)
         yy2 = np.copy(struc2.yy)
-        print("x1 = {}".format(x1))
-        print("y1 = {}".format(y1))
-        print("old xx1 = {}".format(struc1.xx))
-        print("old yy1 = {}".format(struc1.yy))
-        print('-')
-        print("old xx2 = {}".format(xx2))
-        print("old yy2 = {}".format(yy2))
+        #print("x1 = {}".format(x1))
+        #print("y1 = {}".format(y1))
+        #print("old xx1 = {}".format(struc1.xx))
+        #print("old yy1 = {}".format(struc1.yy))
+        #print('-')
+        #print("old xx2 = {}".format(xx2))
+        #print("old yy2 = {}".format(yy2))
 
         xdiff = x2 - x1
         ydiff = y2 - y1
-        print('xdiff = {}'.format(xdiff))
-        print('ydiff = {}'.format(ydiff))
+        #print('xdiff = {}'.format(xdiff))
+        #print('ydiff = {}'.format(ydiff))
         
 
         # Shift the struc2 coordinates to match the center of mass of struc1
         #       dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
         if direction == 1:
-            xx2 += x1 + params.cage_width
+            xx2 += (x1 + params.cage_width - xdiff)
             yy2 += ydiff
         elif direction == 2:
             xx2 += xdiff
             yy2 += (y1 + params.cage_width - ydiff)
-            print("new xx2 = {}".format(xx2))
-            print("new yy2 = {}".format(yy2))
+            #print("new xx2 = {}".format(xx2))
+            #print("new yy2 = {}".format(yy2))
         elif direction == 3:
-            xx2 -= x1 - params.cage_width
+            xx2 -= (x1 + params.cage_width - xdiff)
             yy2 += ydiff
         elif direction == 4:
             xx2 += xdiff
-            yy2 += y1 + params.cage_width
+            yy2 += (y1 + params.cage_width - ydiff)
         else:
             raise ValueError("Unknown direction of joining")
 
@@ -235,8 +249,8 @@ class StructureManager:
         fails = struc1.motor_failure + struc2.motor_failure
 
         newstruc = Structure(ids=mids, xx=xx, yy=yy, motor_failure=fails)
-        print("centered xx = {}".format(newstruc.xx))
-        print("centered yy = {}".format(newstruc.yy))
+        #print("centered xx = {}".format(newstruc.xx))
+        #print("centered yy = {}".format(newstruc.yy))
 
 
         # The index i corresponds to the second new adjacency module
@@ -253,9 +267,9 @@ class StructureManager:
                 waypt_gen.line(np.copy(newstruc.state_vector[:3]), np.copy(newstruc.state_vector[:3]+0.1)))
 
         print("New structure is the following: ")
-        print(newstruc.ids)
-        print(newstruc.xx)
-        print(newstruc.yy)
+        #print(newstruc.ids)
+        #print(newstruc.xx)
+        #print(newstruc.yy)
         print(convert_struc_to_mat(newstruc.ids, newstruc.xx, newstruc.yy))
 
         # Delete the old structures

@@ -19,13 +19,15 @@ from std_msgs.msg import Int8MultiArray
 from modsim import params
 from modsim.datatype.structure import Structure
 from modsim.datatype.structure_manager import StructureManager
-from dockmgr.datatype.OdometryManager import OdometryManager
+#from dockmgr.datatype.OdometryManager import OdometryManager
+from dockmgr.datatype.WorldPosManager import WorldPosManager
 #from dock_manager.srv import ManualDock, ManualDockResponse
 
 #In rviz, we have more robots instantiated than we necessarily use, 
 #   so don't use "num_robots"
 #n = rospy.get_param('num_robots', 2)
-n = rospy.get_param('num_used_robots', 3)
+n = rospy.get_param('num_used_robots', 8)
+pos_manager = WorldPosManager(n)
 
 # Docking vector: this vector represents the element of the triangular matrix of matches
 # The number 1,2,3,4 represents if the connection is up, right, down or left respectively.
@@ -46,10 +48,10 @@ def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
 
     # Pairs of robots.
     pairs = list(combinations(range(n), 2))
-    #print(pairs)
 
     # Check every pair
     for k, (i, j) in enumerate(pairs):
+        # Ignore docks already made
         if docking[k] > 0:
             continue
 
@@ -59,6 +61,11 @@ def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
         z_diff = abs(x[j][2] - x[i][2])
 
         if dist < docking_d and z_diff < min_z_dif:
+            print('------------')
+            print("valid docking with params:\n\tdist = {}, tolerance = {}, zdiff = {}, minzdiff = {}".format(
+                dist, docking_d, z_diff, min_z_dif))
+            #print(x)
+            print(docking)
             dx, dy = diff[:2]
             angle = degrees(atan2(dy, dx))
 
@@ -71,7 +78,6 @@ def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
             else:  # down 3
                 docking[k] = 3
 
-    print(docking, docking_d)
     return docking
 
 
@@ -110,9 +116,11 @@ def manual_dock_service(manual_dock_srv):
     print manual_docking
     return ManualDockResponse()
 
-
 def detect_dockings():
+    global pos_manager
+    global docking
     rospy.init_node('docking_detector', anonymous=True)
+    reset_docking = rospy.set_param('reset_docking', 0)
     # service for manual dock
     #rospy.Service('manual_dock', ManualDock, manual_dock_service)
 
@@ -126,18 +134,22 @@ def detect_dockings():
     dock_pub = rospy.Publisher('/dockings', Int8MultiArray, queue_size=0)
 
     # Gets all robot locations
-    odometry_manager = OdometryManager(n)
-    odometry_manager.subscribe()
+    pos_manager.subscribe()
 
     # FIXME this can be fixed for the same frequency of the odometry
     rate = rospy.Rate(freq)
     while not rospy.is_shutdown():
         rate.sleep()
+        if rospy.get_param('reset_docking') == 1:
+            docking = [0 for _ in range(n * (n - 1) / 2)]
+            rospy.set_param('reset_docking', 0)
+            print("Reset the dockings")
 
-        locations = odometry_manager.get_locations()
+        locations = pos_manager.get_locations()
 
         if None in locations:
-            rospy.logwarn('Docking detector does not have odometry from all robots' + str(locations))
+            rospy.logwarn('Docking detector does not have position from all robots' + 
+                    str(locations))
             rospy.sleep(3)
             continue
 

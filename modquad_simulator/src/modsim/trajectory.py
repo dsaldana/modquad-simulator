@@ -106,7 +106,7 @@ def _min_snap_init(waypts, speed=0.5, t=0.0, use_splines=True):
     # Find distances between waypts
     dists = np.sqrt(np.sum(((np.roll(waypts, 1, axis=0) - waypts)[1:, :]) ** 2, axis=1))
     totaldist = np.sum(dists)
-    t_max = totaldist / speed + t
+    t_max = (totaldist / speed) # Projected time this traj will take to run
     cumdist = np.cumsum(dists)
     if cumdist[0] != 0:
         cumdist = np.insert(cumdist, 0, 0) 
@@ -116,14 +116,15 @@ def _min_snap_init(waypts, speed=0.5, t=0.0, use_splines=True):
     #print('waypts = \n{}'.format(waypts))
     #print("dists = {}".format(dists))
     #print("totaldist = {}".format(totaldist))
-    #print("t_max = {}".format(t_max))
+    #print("projected time = {}".format(t_max))
     #print("cumdist = {}".format(cumdist))
     #for i in range(len(dists)):
     #    print("\tnt = {}".format(dists[i] / totaldist * t_max))
     times = [0] + [dists[i] / totaldist * t_max for i in range(len(dists))]
     #times = np.array([cumdist[i] / totaldist * t_max for i in range(len(cumdist))])
-    times = np.cumsum(np.array(times))
-    times += t
+
+    #t_max += t 
+    times = np.cumsum(np.array(times)) + t # Account for time elapsed since sim began
     #sys.exit(0)
     #plt.plot(waypts[:, 0], waypts[:, 1])
 
@@ -231,6 +232,7 @@ def _min_snap_init(waypts, speed=0.5, t=0.0, use_splines=True):
     cx = np.linalg.solve(M, x)
     cy = np.linalg.solve(M, y)
     cz = np.linalg.solve(M, z)
+    #print("Projected time at end of planning: {}".format(times[-1]-times[0]))
     return traj_data(times, dists, totaldist, waypts, cx, cy, cz)
 
 def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None, 

@@ -2,6 +2,46 @@ import rospy
 from nav_msgs.msg import Odometry
 from transforms3d import euler as trans
 
+def publish_pos(x, pub):
+    #TODO Remove the redundancy of using Odometry here
+    #  as we don't use most of the vector
+    """
+    Publish absolute position in world so that docking detector 
+    correctly identifies docking actions
+    :param x: Vector of values (state)
+    :param pub: The publisher for a specific modquad module
+    """
+    # Roll pitch yaw trust
+    odom = Odometry()
+    odom.pose.pose.position.x = x[0]
+    odom.pose.pose.position.y = x[1]
+    odom.pose.pose.position.z = x[2]
+
+    # Velocities
+    odom.twist.twist.linear.x = 0.0 # x[3]
+    odom.twist.twist.linear.y = 0.0 # x[4]
+    odom.twist.twist.linear.z = 0.0 # x[5]
+
+    # Orientation
+    odom.pose.pose.orientation.x = 0.0 # x[6]
+    odom.pose.pose.orientation.y = 0.0 # x[7]
+    odom.pose.pose.orientation.z = 0.0 # x[8]
+    odom.pose.pose.orientation.w = 0.0 # x[9]
+
+    odom.pose.pose.orientation.x = 0.0 # x[7]
+    odom.pose.pose.orientation.y = 0.0 # x[8]
+    odom.pose.pose.orientation.z = 0.0 # x[9]
+    odom.pose.pose.orientation.w = 0.0 # x[6]
+
+    # Angular velocities
+    odom.twist.twist.angular.x = 0.0 # x[10]
+    odom.twist.twist.angular.y = 0.0 # x[11]
+    odom.twist.twist.angular.z = 0.0 # x[12]
+
+    odom.child_frame_id = 'modquad'
+    odom.header.frame_id = 'world'
+
+    pub.publish(odom)
 
 def publish_odom(x, pub):
     """

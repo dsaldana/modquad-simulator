@@ -27,9 +27,8 @@ from modsim.datatype.structure_manager import StructureManager
 #from dockmgr.datatype.disassembly_manager import DisassemblyManager
 from dockmgr.datatype.assembly_manager import AssemblyManager
 
-from modsim.util.comm import publish_odom, publish_transform_stamped, \
-    publish_odom_relative, publish_transform_stamped_relative, \
-    publish_pos
+from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
+    publish_transform_stamped_relative
 from modsim.util.state import init_state, state_to_quadrotor
 from modsim.util.undocking import gen_strucs_from_split, split_srv_input_format
 from modquad_simulator.srv import Dislocation, DislocationResponse, SplitStructure, SplitStructureResponse
@@ -42,9 +41,8 @@ import modquad_sched_interface.structure_gen as structure_gen
 from scheduler.gsolver import gsolve
 from scheduler.reconfigure import reconfigure
 
-num_mod = 2
+num_mod = 9
 assembler = None
-dislocation_srv = (0., 0.)
 struc_mgr = None
 traj_func = min_snap_trajectory
 t = 0.0 # current time
@@ -58,7 +56,7 @@ def docking_callback(msg):
 
 
 def simulate(pi, trajectory_function):
-    global num_mod, assembler, struc_mgr
+    global num_mod, assembler, struc_mgr, t
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
     rids = [robot_id1]
@@ -71,15 +69,16 @@ def simulate(pi, trajectory_function):
     rospy.set_param('num_used_robots', num_mod)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
-    pos_topic = rospy.get_param('world_pos_topic', '/world_pos')  
+    modpos_world_topic = rospy.get_param('world_pos_topic', '/world_pos')
 
     # Odom publisher
     odom_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
         for struc in struc_mgr.strucs for id_robot in struc.ids}
 
-    pos_publishers = {id_robot: 
-        rospy.Publisher('/' + id_robot + pos_topic, Odometry, queue_size=0) 
+    # This is purely for docking detection so that absolute world position is known
+    pos_publishers = {id_robot:
+        rospy.Publisher('/' + id_robot + modpos_world_topic, Odometry, queue_size=0) 
         for struc in struc_mgr.strucs for id_robot in struc.ids}
 
     # TF publisher
@@ -110,7 +109,7 @@ def simulate(pi, trajectory_function):
     rospy.Subscriber('/dockings', Int8MultiArray, docking_callback) 
 
     docking = False
-    while not rospy.is_shutdown() and t < overtime * tmax:
+    while not rospy.is_shutdown():# and t < overtime * tmax:
         rate.sleep()
         t += 1. / freq
 
@@ -130,6 +129,8 @@ def simulate(pi, trajectory_function):
             docking = True
             assembler.start_assembling_at_time(t)
 
+    #struc_mgr.make_plots()
+
 def test_assembly(mset1, wayptset):
     # Import here in case want to run w/o mqscheduler package
     from modquad_sched_interface.interface import convert_modset_to_struc
@@ -142,13 +143,20 @@ def test_assembly(mset1, wayptset):
     trajectory_function = min_snap_trajectory
     traj_vars = trajectory_function(0, speed, None, wayptset)
     #gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
-    mset1.pi = np.array([[0],[1]])
+    mset1.pi = np.array([[0,1,6],[2,3,7],[4,5,8]])
 
     # Generate all nine structures as individual modules and make struc_mgr
     # Note that we don't set up the trajectory for these
-    strucs = [Structure(['modquad{:02d}'.format(i+1)], xx=[0.0], yy=[0.0]) for i in range(num_mod)]
+    struc1 = Structure(
+           ['modquad05', 'modquad03', 'modquad01', 'modquad06', 'modquad04', 'modquad02'],
+           xx=[0.0, 0.0, 0.0, params.cage_width, params.cage_width, params.cage_width], 
+           yy=[0.0, params.cage_width, 2*params.cage_width, 
+               0.0, params.cage_width, 2*params.cage_width])
+    struc2 = Structure(['modquad09', 'modquad08', 'modquad07'], xx=[0.0, 0.0, 0.0], 
+                yy=[0.0, params.cage_width, 2*params.cage_width])
+    strucs = [struc1, struc2]
     for i,s in enumerate(strucs):
-        s.state_vector = init_state([i+0.0,0.0,0.0], 0)
+        s.state_vector = init_state([2*i+1.0,0.0,0.0], 0)
     struc_mgr = StructureManager(strucs)
 
     print("Assemble this structure (No modid = 0 -- that is empty space):")
@@ -161,4 +169,4 @@ def test_assembly(mset1, wayptset):
 if __name__ == '__main__':
     print("Starting Assembly Simulation")
     rospy.set_param('structure_speed', 1.0)
-    test_assembly(structure_gen.zero(2,1), waypt_gen.line([0,0,0],[10,15,2]))
+    test_assembly(structure_gen.zero(2,2), waypt_gen.line([0,0,0],[10,15,2]))

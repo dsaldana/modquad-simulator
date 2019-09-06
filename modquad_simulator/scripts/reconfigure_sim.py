@@ -23,7 +23,7 @@ from modsim import params
 from modsim.datatype.structure import Structure
 from modsim.datatype.structure_manager import StructureManager
 from dockmgr.datatype.disassembly_manager import DisassemblyManager
-#from dockmgr.datatype.assembly_manager import AssemblyManager
+from dockmgr.datatype.assembly_manager import AssemblyManager
 
 from modsim.util.comm import publish_odom, publish_transform_stamped, publish_odom_relative, \
     publish_transform_stamped_relative
@@ -39,18 +39,11 @@ import modquad_sched_interface.structure_gen as structure_gen
 from scheduler.gsolver import gsolve
 from scheduler.reconfigure import reconfigure
 
-
-## Control Input
-thrust_newtons, roll, pitch, yaw = 0., 0., 0., 0.
-
 # Structure Manager
 struc_mgr = None
 
-dislocation_srv = (0., 0.)
-
 def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix="", split_dim=0, breakline=1, split_ind=0):
-    #global dislocation_srv, thrust_newtons, roll, pitch, yaw
     global struc_mgr
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
@@ -65,6 +58,17 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
     rospy.set_param('structure_speed', speed)
     rospy.set_param('rotor_map', 2) # So that modquad_torque_control knows which mapping to use
 
+    # Location of current structure
+    loc = [init_x, init_y, init_z]
+    state_vector = init_state(loc, 0)
+
+    # Make a copy of the state vector for each structure we have
+    oldstruc.state_vector = state_vector
+
+    # Init structure manager
+    struc_mgr = StructureManager([oldstruc])
+
+    # Set up topics
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     pos_topic = rospy.get_param('world_pos_topic', '/world_pos')  
 
@@ -75,23 +79,12 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
     pos_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + pos_topic, Odometry, queue_size=0) 
-        for id_robot in oldstruc.ids}
+        for struc in struc_mgr.strucs for id_robot in oldstruc.ids}
 
     # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
 
     ########### Simulator ##############
-
-    # Location of first structure
-    loc = [init_x, init_y, init_z]
-    state_vector = init_state(loc, 0)
-
-    # Make a copy of the state vector for each structure we have
-    oldstruc.state_vector = state_vector
-
-    # Init structure manager
-    struc_mgr = StructureManager([oldstruc])
-
     # Time based on avg desired speed (actual speed *not* constant)
     tmax = oldstruc.traj_vars.total_dist / speed
     overtime = 1.5
@@ -105,6 +98,11 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
     # Don't start with a disassembler object
     disassembler = None
+
+    # After disassembly we need to use the assembler
+    newstruc_mat = convert_struc_to_mat(newstruc.ids, newstruc.xx, newstruc.yy)
+
+    already_assembling = False
     ind = 0
     while not rospy.is_shutdown() and t < overtime * tmax:
         rate.sleep()
@@ -112,12 +110,17 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
         opmode = rospy.get_param('opmode', 'normal')
         if opmode == 'disassemble':
-            # Reset time only if the disassembler disassembles another layer
-            #if 
             disassembler.take_step(struc_mgr, t, ind)
-            #    t = 0.0
         elif opmode == 'assemble':
-            pass # TODO
+            if not already_assembling:
+                rospy.set_param("reset_docking", 1)
+                assembler = AssemblyManager(t, newstruc_mat + 1, trajectory_function)
+                assembler.plan_assemblies(struc_mgr)
+                assembler.start_assembling_at_time(t)
+                already_assembling = True
+                print("Set flag to reset dockings")
+            else:
+                assembler.take_step(struc_mgr, t)
 
         # Assuming adherence to trajectory that is already loaded in
         # StructureManager handles doing the actual physics of the simulation for
@@ -132,7 +135,7 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
             undocked = True
 
         ind += 1
-    struc_mgr.make_plots()
+    #struc_mgr.make_plots()
 
 def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, breakline=1, split_ind=0):
     # Import here in case want to run w/o mqscheduler package
@@ -148,7 +151,7 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
 
     # 2. introduce fault, which means we need to reconfigure
-    mset1.fault_rotor(4, 0)
+    mset1.fault_rotor(3, 2)
 
     # 3. Generate the Structure object with the fault
     struc1 = convert_modset_to_struc(mset1)
@@ -167,11 +170,21 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     # 7. Find path of disassembly
     [cost, reconf_map] = reconfigure(mset1, mset2, waypts=traj_vars.waypts, speed=speed)
 
-    print("Reconfigure this structure:")
+    print("Reconfigure this structure: {}".format(struc1.gen_hashstring()))
     print(mset1.pi + 1)
-    print("To this structure:")
+    s1 = convert_struc_to_mat(struc1.ids, struc1.xx, struc1.yy)
+    print(s1)
+    print(struc1.ids)
+    print(struc1.xx)
+    print(struc1.yy)
+    print("To this structure: {}".format(struc2.gen_hashstring()))
     print(mset2.pi + 1)
+    print(struc2.ids)
+    print(struc2.xx)
+    print(struc2.yy)
+    print(convert_struc_to_mat(struc2.ids, struc2.xx, struc2.yy))
     print('=======================')
+    sys.exit(0)
 
     # 8. Run the simulation of the breakup and reassembly
     simulate(struc1, struc2, reconf_map, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
@@ -181,4 +194,4 @@ if __name__ == '__main__':
     test_undock_along_path(
                        structure_gen.zero(3,3), 
                        waypt_gen.line([0,0,0], [10,15,1]), 
-                       speed=0.55, test_id="redisassembly")
+                       speed=0.35, test_id="redisassembly")

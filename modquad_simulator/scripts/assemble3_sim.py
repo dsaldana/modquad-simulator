@@ -69,16 +69,22 @@ def simulate(pi, trajectory_function):
     rospy.set_param('num_used_robots', num_mod)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
+    pos_topic = rospy.get_param('world_pos_topic', '/world_pos')
 
     # Odom publisher
     odom_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
         for struc in struc_mgr.strucs for id_robot in struc.ids}
 
+    # World position of each mod is published by these
+    pos_publishers = {id_robot:
+        rospy.Publisher('/' + id_robot + pos_topic, Odometry, queue_size=0)
+        for struc in struc_mgr.strucs for id_robot in struc.ids}
+
     # TF publisher
     tf_broadcaster = tf2_ros.TransformBroadcaster()
 
-    ########### Simulator ##############
+    ###########  Simulator ##############
     # Time based on avg desired speed (actual speed *not* constant)
     tmax = 30.0
     overtime = 3.5
@@ -115,7 +121,7 @@ def simulate(pi, trajectory_function):
         # StructureManager handles doing the actual physics of the simulation for
         # all structures, and hence for all individual modules
         struc_mgr.control_step(t, trajectory_function, speed, 
-                odom_publishers, tf_broadcaster)
+                odom_publishers, pos_publishers, tf_broadcaster)
 
         if t > 1.0 and not docking: # Start assembling
             print("Parallelized undocking procedure triggered")
