@@ -11,10 +11,13 @@ import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Int8MultiArray
+
 import numpy as np
 from numpy import copy
 import networkx as nx
 import sys
+import copy
 
 from modsim.trajectory import circular_trajectory, simple_waypt_trajectory, min_snap_trajectory
 
@@ -41,10 +44,21 @@ from scheduler.reconfigure import reconfigure
 
 # Structure Manager
 struc_mgr = None
+assembler = None
+t = 0.0
+traj_func = min_snap_trajectory
 
-def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
+def docking_callback(msg):
+    global assembler, struc_mgr, traj_func, t
+    if assembler is not None:
+        assembler.handle_dockings_msg(struc_mgr, msg, traj_func, t)
+    else:
+        raise ValueError("Assembler object does not exist")
+
+def simulate(oldstruc, newstruc, reconf_map, t_step=0.01, speed=0.5, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix="", split_dim=0, breakline=1, split_ind=0):
-    global struc_mgr
+    global struc_mgr, assembler, t, traj_func
+    trajectory_function = traj_func
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
     rids = [robot_id1]
@@ -72,6 +86,9 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     pos_topic = rospy.get_param('world_pos_topic', '/world_pos')  
 
+    # Subscribe to /dockings so that you can tell when to combine structures
+    rospy.Subscriber('/dockings', Int8MultiArray, docking_callback) 
+            
     # Odom publisher
     odom_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
@@ -104,7 +121,7 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
 
     already_assembling = False
     ind = 0
-    while not rospy.is_shutdown() and t < overtime * tmax:
+    while not rospy.is_shutdown():
         rate.sleep()
         t += 1. / freq
 
@@ -114,7 +131,8 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
         elif opmode == 'assemble':
             if not already_assembling:
                 rospy.set_param("reset_docking", 1)
-                assembler = AssemblyManager(t, newstruc_mat + 1, trajectory_function)
+                rospy.Rate(9).sleep() # Wait for it to start up
+                assembler = AssemblyManager(t, newstruc_mat, trajectory_function)
                 assembler.plan_assemblies(struc_mgr)
                 assembler.start_assembling_at_time(t)
                 already_assembling = True
@@ -137,13 +155,14 @@ def simulate(oldstruc, newstruc, reconf_map, trajectory_function, t_step=0.01, s
         ind += 1
     #struc_mgr.make_plots()
 
-def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, breakline=1, split_ind=0):
+def test_undock_along_path(mset1, wayptset, speed=0.5, test_id="", split_dim=0, breakline=1, split_ind=0):
     # Import here in case want to run w/o mqscheduler package
     from modquad_sched_interface.interface import convert_modset_to_struc
     from compiled_scheduler.modset import modset
+    global traj_func
 
     # Setup
-    trajectory_function = min_snap_trajectory
+    trajectory_function = traj_func
     traj_vars = trajectory_function(0, speed, None, wayptset)
 
     # Order of calls is important
@@ -158,7 +177,8 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     struc1.traj_vars = traj_vars
 
     # 4. Generate the modset object we will store reallocation in
-    mset2 = modset(mset1.num_mod, np.copy(mset1.struc), mset1, mset1.mod_ids)
+    mset2 = copy.deepcopy(mset1)
+    #modset(mset1.num_mod, np.copy(mset1.struc), mset1, mset1.mod_ids)
 
     # 5. Reallocate modules to positions
     gsolve(mset2, waypts=traj_vars.waypts, speed=speed)
@@ -170,28 +190,38 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     # 7. Find path of disassembly
     [cost, reconf_map] = reconfigure(mset1, mset2, waypts=traj_vars.waypts, speed=speed)
 
-    print("Reconfigure this structure: {}".format(struc1.gen_hashstring()))
+    print("Reconfigure this structure: {}".format(""))#struc1.gen_hashstring()))
+    #struc1 = convert_modset_to_struc(mset1)
+    struc3 = convert_modset_to_struc(mset1)
     print(mset1.pi + 1)
+    #print(struc3)
     s1 = convert_struc_to_mat(struc1.ids, struc1.xx, struc1.yy)
     print(s1)
-    print(struc1.ids)
-    print(struc1.xx)
-    print(struc1.yy)
-    print("To this structure: {}".format(struc2.gen_hashstring()))
+    print(struc1.gen_hashstring())
+    print(struc1.motor_failure)
+    #print(struc1.ids)
+    #print(struc1.xx)
+    #print(struc1.yy)
+    print("To this structure: {}".format(""))#struc2.gen_hashstring()))
+    struc2 = convert_modset_to_struc(mset2)
+    struc2.traj_vars = traj_vars
     print(mset2.pi + 1)
-    print(struc2.ids)
-    print(struc2.xx)
-    print(struc2.yy)
-    print(convert_struc_to_mat(struc2.ids, struc2.xx, struc2.yy))
+    #print(struc4)
+    s2 = convert_struc_to_mat(struc2.ids, struc2.xx, struc2.yy)
+    print(s2)
+    print(struc2.gen_hashstring())
+    print(struc2.motor_failure)
+    #print(struc2.ids)
+    #print(struc2.xx)
+    #print(struc2.yy)
     print('=======================')
-    sys.exit(0)
 
     # 8. Run the simulation of the breakup and reassembly
-    simulate(struc1, struc2, reconf_map, trajectory_function, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
+    simulate(struc1, struc2, reconf_map, waypts=wayptset, loc=[0,0,0], figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
 
 if __name__ == '__main__':
     print("Starting Undocking Simulation")
     test_undock_along_path(
-                       structure_gen.zero(3,3), 
+                       structure_gen.square(3), 
                        waypt_gen.line([0,0,0], [10,15,1]), 
                        speed=0.35, test_id="redisassembly")

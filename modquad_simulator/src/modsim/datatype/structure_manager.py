@@ -92,6 +92,7 @@ class StructureManager:
 
         # NOTE: for some reason loop by value over a zip() does not work
         for i, structure in enumerate(self.strucs):
+
             #if i != 1 and len(self.strucs) > 1: 
             #    continue
 
@@ -155,6 +156,12 @@ class StructureManager:
             #if i == 1:
             #    print("Pos Err: {}".format(structure.pos_accumulated_error))
             #    print("Att Err: {}".format(structure.att_accumulated_error))
+            #if 'modquad06' in structure.ids:
+            #    s1 = desired_state[0]
+            #    s2 = structure.state_vector[:3]
+            #    print("Mod6 Desire Pos: {}".format(s1))
+            #    print("Mod6 Actual Pos: {}".format(s2))
+            #    print("\t Error is: {}".format(s1-s2))
         
     def get_data_by_ind(self, index):
         if index < 0 or index > len(self.strucs):
@@ -227,19 +234,23 @@ class StructureManager:
         # Shift the struc2 coordinates to match the center of mass of struc1
         #       dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
         if direction == 1:
-            xx2 += (x1 + params.cage_width - xdiff)
+            delta_x = (x1 + params.cage_width) - x2
+            xx2 += delta_x #(x1 + params.cage_width + xdiff)
             yy2 += ydiff
         elif direction == 2:
             xx2 += xdiff
-            yy2 += (y1 + params.cage_width - ydiff)
+            delta_y = (y1 + params.cage_width) - y2
+            yy2 += delta_y #(y1 + params.cage_width + ydiff)
             #print("new xx2 = {}".format(xx2))
             #print("new yy2 = {}".format(yy2))
         elif direction == 3:
-            xx2 -= (x1 + params.cage_width - xdiff)
+            delta_x = (x1 - params.cage_width) - x2
+            xx2 += delta_x #(x1 + params.cage_width - xdiff)
             yy2 += ydiff
         elif direction == 4:
             xx2 += xdiff
-            yy2 += (y1 + params.cage_width - ydiff)
+            delta_y = (y1 - params.cage_width) - y2
+            yy2 += delta_y #(y1 + params.cage_width - ydiff)
         else:
             raise ValueError("Unknown direction of joining")
 

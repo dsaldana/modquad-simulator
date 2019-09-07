@@ -100,9 +100,9 @@
         <arg name="init_y" default="1.0"/> 
  
  
-        <arg name="color_r" default="0.5"/> 
-        <arg name="color_g" default="0.5"/> 
-        <arg name="color_b" default="0.5"/> 
+        <arg name="color_r" default="0.75"/> 
+        <arg name="color_g" default="0.50"/> 
+        <arg name="color_b" default="0.25"/> 
     </include>
 <!--
     <include file="$(arg launch_path)/modquad.launch"> 

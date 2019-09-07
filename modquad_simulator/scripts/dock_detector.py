@@ -26,7 +26,7 @@ from dockmgr.datatype.WorldPosManager import WorldPosManager
 #In rviz, we have more robots instantiated than we necessarily use, 
 #   so don't use "num_robots"
 #n = rospy.get_param('num_robots', 2)
-n = rospy.get_param('num_used_robots', 8)
+n = rospy.get_param('num_used_robots', 9)
 pos_manager = WorldPosManager(n)
 
 # Docking vector: this vector represents the element of the triangular matrix of matches
@@ -133,17 +133,24 @@ def detect_dockings():
     # publisher
     dock_pub = rospy.Publisher('/dockings', Int8MultiArray, queue_size=0)
 
+    print("Started docking detected, wait for signal to start detecting")
+    # Don't need to assemble off the bat
+    while not rospy.get_param('reset_docking') == 1:
+        rospy.Rate(10).sleep()
+    rospy.set_param('reset_docking', 0)
+
     # Gets all robot locations
     pos_manager.subscribe()
 
     # FIXME this can be fixed for the same frequency of the odometry
     rate = rospy.Rate(freq)
+
     while not rospy.is_shutdown():
         rate.sleep()
-        if rospy.get_param('reset_docking') == 1:
-            docking = [0 for _ in range(n * (n - 1) / 2)]
-            rospy.set_param('reset_docking', 0)
-            print("Reset the dockings")
+        #if rospy.get_param('reset_docking') == 1:
+        #    docking = [0 for _ in range(n * (n - 1) / 2)]
+        #    rospy.set_param('reset_docking', 0)
+        #    print("Reset the dockings")
 
         locations = pos_manager.get_locations()
 

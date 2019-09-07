@@ -120,11 +120,13 @@ def _min_snap_init(waypts, speed=0.5, t=0.0, use_splines=True):
     #print("cumdist = {}".format(cumdist))
     #for i in range(len(dists)):
     #    print("\tnt = {}".format(dists[i] / totaldist * t_max))
-    times = [0] + [dists[i] / totaldist * t_max for i in range(len(dists))]
-    #times = np.array([cumdist[i] / totaldist * t_max for i in range(len(cumdist))])
+    times = np.array([0] + [dists[i] / totaldist * t_max for i in range(len(dists))])
+    time_inflate = np.ones((times.shape[0]))
+    #if len(times) > 2:
+    #    time_inflate[-3:] *= np.array([1.1, 1.25, 1.3])
+    #    times *= time_inflate
 
-    #t_max += t 
-    times = np.cumsum(np.array(times)) + t # Account for time elapsed since sim began
+    times = np.cumsum(times) + t # Account for time elapsed since sim began
     #sys.exit(0)
     #plt.plot(waypts[:, 0], waypts[:, 1])
 
@@ -141,9 +143,12 @@ def _min_snap_init(waypts, speed=0.5, t=0.0, use_splines=True):
     #print(np.transpose(waypts))
 
     #if use_splines or True:
-    xq = interp.barycentric_interpolate(times, waypts[:,0], newtimes)
-    yq = interp.barycentric_interpolate(times, waypts[:,1], newtimes)
-    zq = interp.barycentric_interpolate(times, waypts[:,2], newtimes)
+    xq = interp.pchip_interpolate(times, waypts[:,0], newtimes)
+    yq = interp.pchip_interpolate(times, waypts[:,1], newtimes)
+    zq = interp.pchip_interpolate(times, waypts[:,2], newtimes)
+    #xq = interp.barycentric_interpolate(times, waypts[:,0], newtimes)
+    #yq = interp.barycentric_interpolate(times, waypts[:,1], newtimes)
+    #zq = interp.barycentric_interpolate(times, waypts[:,2], newtimes)
     #else:
     #    print(times)
     #    print(waypts)

@@ -51,13 +51,18 @@ class DisassemblyManager:
         speed = rospy.get_param('structure_speed', 1.0)
         self.next_disassemblies = {}
 
-        #for ind, val in self.reconf_map:
-        #    print("{} : {}".format(ind, val))
+        #print(" ====== Reconf Map ====== ")
+        #for ind in self.reconf_map:
+        #    print("{} : {}".format(ind, self.reconf_map[ind]))
+        #print(" --- Finding next disassemblies --- ")
         for s in struc_mgr.strucs:
             hashstring = s.gen_hashstring()
+            #print("Looking for entry to disassemble: {}".format(hashstring))
             if hashstring in self.reconf_map:
                 self.next_disassemblies[hashstring] = self.reconf_map[hashstring]
-            #print("{} disassembles at {}".format(hashstring, self.reconf_map[hashstring]))
+            #   print("\t{} disassembles at {}".format(hashstring, self.reconf_map[hashstring]))
+            #else:
+            #    print("\t{} does not have an entry".format(hashstring))
 
         if len(self.next_disassemblies) == 0:
             #speed = 0.75
@@ -79,10 +84,10 @@ class DisassemblyManager:
             # Based on direction of disassembly, generate the new trajectories where 
             # generated substructures will be positioned
             if dis_loc[0][0] == 'x':
-                new_loc[0] = [np.copy(cur_loc[0]), np.copy(cur_loc[1])-2.0, np.copy(cur_loc[2]) + 1.0]
-                new_loc[1] = [np.copy(cur_loc[0]), np.copy(cur_loc[1])+2.0, np.copy(cur_loc[2]) + 1.0]
-                cur_locp[0]= [np.copy(cur_loc[0]), np.copy(cur_loc[1])-1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[2])]
-                cur_locp[1]= [np.copy(cur_loc[0]), np.copy(cur_loc[1])+1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[2])]
+                new_loc[0] = [np.copy(cur_loc[0]), np.copy(cur_loc[1])+2.0, np.copy(cur_loc[2]) + 1.0]
+                new_loc[1] = [np.copy(cur_loc[0]), np.copy(cur_loc[1])-2.0, np.copy(cur_loc[2]) + 1.0]
+                cur_locp[0]= [np.copy(cur_loc[0]), np.copy(cur_loc[1])+1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[2])]
+                cur_locp[1]= [np.copy(cur_loc[0]), np.copy(cur_loc[1])-1*params.cage_width * dis_loc[0][1], np.copy(cur_loc[2])]
             else: # y disassembly
                 new_loc[0] = [np.copy(cur_loc[0])-2.0, np.copy(cur_loc[1]), np.copy(cur_loc[2]) + 1.0]
                 new_loc[1] = [np.copy(cur_loc[0])+2.0, np.copy(cur_loc[1]), np.copy(cur_loc[2]) + 1.0]

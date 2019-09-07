@@ -64,7 +64,7 @@ def simulate(pi, trajectory_function):
 
     demo_trajectory = rospy.get_param('~demo_trajectory', True)
 
-    speed = rospy.get_param('structure_speed', 1.0)
+    speed = rospy.get_param('structure_speed', 0.5)
     rospy.set_param('opmode', 'normal')
     rospy.set_param('rotor_map', 2) # So that modquad_torque_control knows which mapping to use
     rospy.set_param('num_used_robots', num_mod)
@@ -138,7 +138,7 @@ def test_assembly(mset1, wayptset):
     from compiled_scheduler.modset import modset
 
     global num_mod, struc_mgr
-    speed = rospy.get_param('structure_speed', 1.0)
+    speed = rospy.get_param('structure_speed', 0.5)
 
     # Setup
     trajectory_function = min_snap_trajectory
@@ -154,6 +154,8 @@ def test_assembly(mset1, wayptset):
 
     print("Assemble this structure (No modid = 0 -- that is empty space):")
     print(mset1.pi + 1)
+    s = convert_modset_to_struc(mset1)
+    print(convert_struc_to_mat(s.ids, s.xx, s.yy))
     print('=======================')
 
     # 8. Run the simulation of the breakup and reassembly
