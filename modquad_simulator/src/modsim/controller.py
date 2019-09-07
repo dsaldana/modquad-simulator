@@ -31,9 +31,9 @@ def position_controller(structure, desired_state):
 
     # Multi mod control params
     if num_mod > 4:
-        xyp =   5.0 
-        xyd =  80.0 
-        xyi =   0.01 
+        xyp =  15.0 
+        xyd =  30.0 
+        xyi =   0.00 
         zp  =  15.0
         zd  =  18.0 
         zi  =   2.5 

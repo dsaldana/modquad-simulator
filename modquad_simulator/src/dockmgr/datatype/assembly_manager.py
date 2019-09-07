@@ -157,7 +157,7 @@ class AssemblyManager:
         Handles when to perform the next assembly
         Provide extra seconds per assembly
         """
-        if t >= 1 + self.next_time_to_plan and self.next_plan_z:
+        if (t >= self.next_time_to_plan and len(self.next_assemblies) == 0) and self.next_plan_z :
             if len(self.next_assemblies) > 0:
                 print("Supposedly Finished layer {} of assembly".format(self.assembly_layer-1))
                 if self.num_next_dockings_achieved != len(self.next_assemblies):
@@ -193,7 +193,7 @@ class AssemblyManager:
             #    rospy.set_param("print_pos_error", 1)
             return True
 
-        elif t >= 1.20 * self.next_time_to_plan:
+        elif t >= 2 + self.next_time_to_plan:
             #print("Finished ascending to the desired heights")
             for i, mapping in enumerate(self.next_assemblies):
                 modid1, modid2, adj_dir = extract_mods_from_string(struc_mgr, mapping[0], mapping[1][0], self.mat)

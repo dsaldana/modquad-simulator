@@ -128,7 +128,7 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
 
     # 2. introduce fault, which means we need to reconfigure
-    mset1.fault_rotor(1, 2)
+    mset1.fault_rotor(2, 2)
 
     # 3. Generate the Structure object with the fault
     struc1 = convert_modset_to_struc(mset1)
@@ -145,7 +145,7 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
 if __name__ == '__main__':
     print("Starting Control Testing Simulation")
     test_undock_along_path(
-                       structure_gen.zero(2, 1), 
+                       structure_gen.zero(3, 2), 
                        #structure_gen.square(1),
-                       waypt_gen.line([inx,inx,inx],[inx,inx,3]), 
-                       speed=0.35, test_id="control_test")
+                       waypt_gen.line([inx,inx,inx],[inx+1,inx+2,3]), 
+                       speed=0.45, test_id="control_test")
