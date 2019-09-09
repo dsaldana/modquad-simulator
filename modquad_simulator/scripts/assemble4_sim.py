@@ -162,4 +162,7 @@ def test_assembly(mset1, wayptset):
 if __name__ == '__main__':
     print("Starting Assembly Simulation")
     rospy.set_param('structure_speed', 1.0)
+    rospy.set_param('num_used_robots', 4)
+    rospy.set_param("opmode", "assemble")
+    rospy.set_param("reset_docking", 1)
     test_assembly(structure_gen.zero(2,2), waypt_gen.line([0,0,0],[10,15,2]))

@@ -38,15 +38,21 @@ def position_controller(structure, desired_state):
         zd  =  18.0 
         zi  =   2.5 
     # Control gains for 3-4 mods
-    elif num_mod > 2:
+    elif num_mod > 3:
         xyp =  29.0
         xyd =  51.0
         xyi =   0.01
         zp  =  13.0
         zd  =  18.0
         zi  =   2.5
-    # 1-2 mod control params
-    else:
+    elif num_mod > 2:
+        xyp =  39.0
+        xyd =  91.0
+        xyi =   0.01
+        zp  =  13.0
+        zd  =  18.0
+        zi  =   2.5
+    else: # Single module or pair
         xyp = 67.0  # 17.0
         xyd = 39.0  # 99.0
         xyi =  0.01 #  0.1 
@@ -145,17 +151,20 @@ def modquad_torque_control(F, M, structure, motor_sat=False):
     rotor_forces = np.dot(A, [F, M[0], M[1]])  # Not using moment about Z-axis for limits
 
     # Failing motors -- IDs are 1-indexed, but rotor pos are 0-indexed
-    for i, mf in enumerate(sorted(structure.motor_failure)):
+    for mf in structure.motor_failure:
         try:
-            #print("Fail rotor: {}".format(4*i + mf[1]))
-            rotor_forces[4 * i + mf[1]] *= 0.0
+            ind = structure.ids.index('modquad{:02d}'.format(mf[0]))
+            rotor_forces[4 * (ind-1) + mf[1]] *= 0.0
         except:
+            print("ERROR IN ZEROING FAILED MOTOR THRUST")
+            print("Fail rotor real: {}, {}".format(mf[0], mf[1]))
+            print("Fail rotor computed: {}".format(4*(mf[0]-1) + mf[1]))
             print(structure.ids)
-            print(structure.xx)
-            print(structure.yy)
+            #print(structure.xx)
+            #print(structure.yy)
             print(structure.motor_failure)
-            print(np.array(A))
-            print(np.array([F,M[0],M[1]]))
+            #print(np.array(A))
+            #print(np.array([F,M[0],M[1]]))
             print(rotor_forces)
             import sys
             sys.exit(-1)

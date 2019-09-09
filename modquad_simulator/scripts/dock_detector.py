@@ -26,13 +26,13 @@ from dockmgr.datatype.WorldPosManager import WorldPosManager
 #In rviz, we have more robots instantiated than we necessarily use, 
 #   so don't use "num_robots"
 #n = rospy.get_param('num_robots', 2)
-n = rospy.get_param('num_used_robots', 9)
-pos_manager = WorldPosManager(n)
+#n = rospy.get_param('num_used_robots', 3)
+#pos_manager = WorldPosManager(n)
 
 # Docking vector: this vector represents the element of the triangular matrix of matches
 # The number 1,2,3,4 represents if the connection is up, right, down or left respectively.
-docking = [0 for _ in range(n * (n - 1) / 2)]
-manual_docking = [-1 for _ in range(n * (n - 1) / 2)]
+#docking = [0 for _ in range(n * (n - 1) / 2)]
+#manual_docking = [-1 for _ in range(n * (n - 1) / 2)]
 
 
 def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
@@ -117,7 +117,7 @@ def manual_dock_service(manual_dock_srv):
     return ManualDockResponse()
 
 def detect_dockings():
-    global pos_manager
+    global pos_manager, n
     global docking
     rospy.init_node('docking_detector', anonymous=True)
     reset_docking = rospy.set_param('reset_docking', 0)
@@ -136,8 +136,13 @@ def detect_dockings():
     print("Started docking detected, wait for signal to start detecting")
     # Don't need to assemble off the bat
     while not rospy.get_param('reset_docking') == 1:
-        rospy.Rate(10).sleep()
+        rospy.Rate(5).sleep()
+
+    # Use new parameters
     rospy.set_param('reset_docking', 0)
+    n = rospy.get_param('num_used_robots', 9)
+    pos_manager = WorldPosManager(n)
+    docking = [0 for _ in range(n * (n - 1) / 2)]
 
     # Gets all robot locations
     pos_manager.subscribe()

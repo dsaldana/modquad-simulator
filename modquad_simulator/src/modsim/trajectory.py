@@ -270,7 +270,7 @@ def min_snap_trajectory(t, speed=1, traj_vars=None, waypts=None,
         yaw = 0
         yawdot = 0
         return [pos, vel, acc, yaw, yawdot]
-        t = t_max # Hover at final spot
+        #t = t_max # Hover at final spot
     ind = [i for i in range(0, len(traj_vars.times) - 1)
            if t >= traj_vars.times[i] and t < traj_vars.times[i + 1]]
     if len(ind) != 1 and t != t_max:

@@ -93,9 +93,6 @@ class StructureManager:
         # NOTE: for some reason loop by value over a zip() does not work
         for i, structure in enumerate(self.strucs):
 
-            #if i != 1 and len(self.strucs) > 1: 
-            #    continue
-
             # Publish odometry
             publish_structure_odometry(structure, odom_publishers, tf_broadcaster)
 
@@ -103,16 +100,16 @@ class StructureManager:
             publish_mod_pos(structure, pos_publishers)
 
             desired_state = trajectory_function(t, speed, structure.traj_vars)
-            #if i == 0 and abs(t - 3.0) < 0.05:
+            #if i == 0:# and t % 1.0 < 0.05:
             #    print("Desired state[{}] = {}".format(t, desired_state))
             #    print("Current state = {}".format(structure.state_vector))
 
             # Overwrite the control input with the demo trajectory
             [thrust_newtons, roll, pitch, yaw] = \
                     position_controller(structure, desired_state)
-            #if i == 1:
-            #    print("thrust={}, roll={}, pitch={}, yaw={}".format(
-            #        thrust_newtons, roll, pitch, yaw))
+            #print("thrust={}, roll={}, pitch={}, yaw={}".format(
+            #    thrust_newtons, roll, pitch, yaw))
+            #print("---")
 
             #self.strucs[i].update_control_params(thrust_newtons, roll, pitch, yaw)
             try:
@@ -133,7 +130,7 @@ class StructureManager:
 
             # Control of Moments and thrust
             F_structure, M_structure, rotor_forces = modquad_torque_control(
-                            F_single, M_single, structure, motor_sat=True)
+                            F_single, M_single, structure, motor_sat=False)
             #if i == 1:
             #    print("F_struc={}, M_struc={}, rot_force={}".format(
             #       F_structure, M_structure, rotor_forces))
@@ -234,7 +231,7 @@ class StructureManager:
         # Shift the struc2 coordinates to match the center of mass of struc1
         #       dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
         if direction == 1:
-            delta_x = (x1 + params.cage_width) - x2
+            delta_x = (x1 - params.cage_width) - x2
             xx2 += delta_x #(x1 + params.cage_width + xdiff)
             yy2 += ydiff
         elif direction == 2:
@@ -249,7 +246,7 @@ class StructureManager:
             yy2 += ydiff
         elif direction == 4:
             xx2 += xdiff
-            delta_y = (y1 - params.cage_width) - y2
+            delta_y = (y1 + params.cage_width) - y2
             yy2 += delta_y #(y1 + params.cage_width - ydiff)
         else:
             raise ValueError("Unknown direction of joining")

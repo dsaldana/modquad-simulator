@@ -182,7 +182,7 @@ class AssemblyManager:
             print("At t = {}, set up assemblies: {}".format(t, self.next_assemblies))
 
             # The z-locations at which the pairs will dock
-            zlayers = [i+2 for i in range(len(self.next_assemblies))]
+            zlayers = [i+0.5 for i in range(len(self.next_assemblies))]
             
             for i, mapping in enumerate(self.next_assemblies):
                 modid1, modid2, _ = extract_mods_from_string(struc_mgr, mapping[0], mapping[1][0], self.mat)
@@ -568,10 +568,10 @@ class AssemblyManager:
                     p2str = ','.join(str(int(num)) for num in sorted(p2_nums))
                 
 
-                if (dirs[dockings[x]] == 'up' or dirs[dockings[x]] == 'left'): 
+                #if (dirs[dockings[x]] == 'up' or dirs[dockings[x]] == 'left'): 
                     hashstring = '_'.join([p2str, p1str])
-                else:
-                    hashstring = '_'.join([p1str, p2str])
+                #else:
+                #    hashstring = '_'.join([p1str, p2str])
 
                 # Updates
                 #print(x)

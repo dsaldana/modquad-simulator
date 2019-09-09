@@ -170,7 +170,7 @@ def test_undock_along_path(mset1, wayptset, speed=0.5, test_id="", split_dim=0, 
     gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
 
     # 2. introduce fault, which means we need to reconfigure
-    mset1.fault_rotor(3, 0)
+    mset1.fault_rotor(1, 0)
 
     # 3. Generate the Structure object with the fault
     struc1 = convert_modset_to_struc(mset1)
@@ -222,7 +222,8 @@ def test_undock_along_path(mset1, wayptset, speed=0.5, test_id="", split_dim=0, 
 
 if __name__ == '__main__':
     print("Starting Undocking Simulation")
+    rospy.set_param("num_used_robots", 3)
     test_undock_along_path(
-                       structure_gen.square(3), 
+                       structure_gen.zero(3,1), 
                        waypt_gen.line([0,0,0], [10,15,1]), 
                        speed=0.35, test_id="redisassembly")

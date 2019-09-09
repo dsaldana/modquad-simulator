@@ -38,12 +38,16 @@ from scheduler.reconfigure import reconfigure
 
 # Structure Manager
 struc_mgr = None
-inx = 0.1
+global inx, iny, inz
+inx = 0.5
+iny = 0.5
+inz = 0.0
 
-def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .0], 
+def simulate(oldstruc, trajectory_function, t_step=0.01, speed=0.5, loc=[1., .0, .0], 
         waypts=None, figind=1, filesuffix="", split_dim=0, breakline=1, split_ind=0):
     global dislocation_srv, thrust_newtons, roll, pitch, yaw
     global struc_mgr
+    global inx, iny, inz
     rospy.init_node('modrotor_simulator', anonymous=True)
     robot_id1 = rospy.get_param('~robot_id', 'modquad01')
     rids = [robot_id1]
@@ -95,7 +99,7 @@ def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .
     # Don't start with a disassembler object
     disassembler = None
     
-    while not rospy.is_shutdown() and t < tmax:
+    while not rospy.is_shutdown() and t < 3*tmax:
         rate.sleep()
         t += 1. / freq
 
@@ -115,6 +119,7 @@ def simulate(oldstruc, trajectory_function, t_step=0.01, speed=1, loc=[1., .0, .
     struc_mgr.make_plots()
 
 def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, breakline=1, split_ind=0):
+    global inx, iny, inz
     # Import here in case want to run w/o mqscheduler package
     from modquad_sched_interface.interface import convert_modset_to_struc
     from compiled_scheduler.modset import modset
@@ -128,7 +133,14 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     gsolve(mset1, waypts=traj_vars.waypts, speed=speed)
 
     # 2. introduce fault, which means we need to reconfigure
-    mset1.fault_rotor(2, 2)
+    #mset1.fault_rotor(0, 0)
+    #mset1.fault_rotor(0, 1)
+    mset1.fault_rotor(0, 2)
+    #mset1.fault_rotor(0, 3)
+    #mset1.fault_rotor(1, 0)
+    #mset1.fault_rotor(1, 1)
+    #mset1.fault_rotor(1, 2)
+    #mset1.fault_rotor(1, 3)
 
     # 3. Generate the Structure object with the fault
     struc1 = convert_modset_to_struc(mset1)
@@ -139,13 +151,15 @@ def test_undock_along_path(mset1, wayptset, speed=1, test_id="", split_dim=0, br
     print('=======================')
 
     # 4. Run the simulation
-    simulate(struc1, trajectory_function, waypts=wayptset, loc=[inx,inx,inx], 
+    simulate(struc1, trajectory_function, waypts=wayptset, loc=[inx,iny,inz], 
             figind=1, speed=speed, filesuffix="{}_noreform".format(test_id))
 
 if __name__ == '__main__':
     print("Starting Control Testing Simulation")
+    global inx, iny, inz
     test_undock_along_path(
-                       structure_gen.zero(3, 2), 
+                       structure_gen.plus(3, 1), 
                        #structure_gen.square(1),
-                       waypt_gen.line([inx,inx,inx],[inx+1,inx+2,3]), 
+                       waypt_gen.line([inx,iny,inz],[inx,iny+0.01,inz+0.5]), 
+                       #waypt_gen.helix(2.5,5,3), 
                        speed=0.45, test_id="control_test")
