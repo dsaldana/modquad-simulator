@@ -98,8 +98,20 @@ def extract_mods_from_string(struc_mgr, hashstring, assembly_params, target):
         print(xy2)
         adj_locs = xy1[0] == xy2[0]
         ind = adj_locs.tolist().index(True)
-        modid1 = target[xy1[0][ind], xy1[1][ind]]
-        modid2 = target[xy2[0][ind], xy2[1][ind]]
+        if len(xy1[0]) < len(xy2[0]):
+            ind1 = xy1.index(xy2[0][ind])
+            ind2 = ind
+        elif len(xy2[0]) < len(xy1[0]):
+            ind1 = ind
+            ind2 = xy2.index(xy1[0][ind])
+        else:
+            ind1 = ind
+            ind2 = ind
+        print(adj_locs)
+        print(ind)
+        print(ind1, ind2)
+        modid1 = target[xy1[0][ind1], xy1[1][ind1]]
+        modid2 = target[xy2[0][ind2], xy2[1][ind2]]
         adj_dir = 'right'
     #print(modid1, modid2, adj_dir)
     return int(modid1), int(modid2), adj_dir
@@ -574,10 +586,11 @@ class AssemblyManager:
                 #    hashstring = '_'.join([p1str, p2str])
 
                 # Updates
-                #print(x)
-                #print(dock_ind)
-                #print(p1.ids, p2.ids)
-                #print("Docking direction detected at t = {}: {}".format(t, dockings[x]))
+                print('- - - - - Triggering a join - - - - - - ')
+                print(x)
+                print(dock_ind)
+                print(p1.ids, p2.ids)
+                print("Docking direction detected at t = {}: {}".format(t, dockings[x]))
                 struc_mgr.join_strucs(p1, p2, pairs[x], dockings[x], traj_func, t)
                 todel = [i for i,to in enumerate(self.next_assemblies) if to[0] == hashstring]
                 print("Generated hashstring: {}".format(hashstring))

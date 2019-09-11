@@ -224,5 +224,6 @@ if __name__ == '__main__':
     print("Starting Undocking Simulation")
     test_undock_along_path(
                        structure_gen.square(3), 
+                       #structure_gen.plus(3,3), 
                        waypt_gen.line([0,0,0], [10,15,1]), 
                        speed=0.35, test_id="redisassembly")

@@ -214,18 +214,18 @@ class StructureManager:
         # Define all struc2 mods relative to x, y
         xx2 = np.copy(struc2.xx)
         yy2 = np.copy(struc2.yy)
-        #print("x1 = {}".format(x1))
-        #print("y1 = {}".format(y1))
-        #print("old xx1 = {}".format(struc1.xx))
-        #print("old yy1 = {}".format(struc1.yy))
-        #print('-')
-        #print("old xx2 = {}".format(xx2))
-        #print("old yy2 = {}".format(yy2))
+        print("x1 = {}".format(x1))
+        print("y1 = {}".format(y1))
+        print("old xx1 = {}".format(struc1.xx))
+        print("old yy1 = {}".format(struc1.yy))
+        print('-')
+        print("old xx2 = {}".format(xx2))
+        print("old yy2 = {}".format(yy2))
 
         xdiff = x2 - x1
         ydiff = y2 - y1
-        #print('xdiff = {}'.format(xdiff))
-        #print('ydiff = {}'.format(ydiff))
+        print('xdiff = {}'.format(xdiff))
+        print('ydiff = {}'.format(ydiff))
         
 
         # Shift the struc2 coordinates to match the center of mass of struc1

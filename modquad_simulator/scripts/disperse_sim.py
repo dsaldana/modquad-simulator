@@ -105,31 +105,25 @@ def simulate(structures, trajectory_function,
     demo_trajectory = rospy.get_param('~demo_trajectory', True)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
+    pos_topic = rospy.get_param('world_pos_topic', '/world_pos')  
 
-    # service for dislocate the robot
-    #rospy.Service('dislocate_robot', Dislocation, dislocate)
-
-    # TODO read structure and create a service to change it.
-
-    # Subscribe to control input
-    #[rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, 
-    #    control_input_listener) for robot_id in rids]
+    state_vector = init_state(loc, 0)
+    for s in structures:
+        s.state_vector = init_state(s.traj_vars.waypts[0,:],0)
 
     # Odom publisher
     odom_publishers = {'modquad{:02d}'.format(id_robot+1): rospy.Publisher(
         '/modquad{:02d}'.format(id_robot+1) + odom_topic, 
         Odometry, queue_size=0) for id_robot in range(num_mod)}
 
-    # TF publisher
-    tf_broadcaster = tf2_ros.TransformBroadcaster()
-
-    state_vector = init_state(loc, 0)
-    #svecs = [init_state(s.traj_vars.waypts[0,:],0) for s in structures]
-    for s in structures:
-        s.state_vector = init_state(s.traj_vars.waypts[0,:],0)
-
     struc_mgr = StructureManager(structures)
 
+    pos_publishers = {id_robot: 
+        rospy.Publisher('/' + id_robot + pos_topic, Odometry, queue_size=0) 
+        for struc in struc_mgr.strucs for id_robot in struc.ids}
+
+    # TF publisher
+    tf_broadcaster = tf2_ros.TransformBroadcaster()
 
     tmax = max([s.traj_vars.total_dist / speed for s in structures])
     overtime = 1.5
@@ -140,7 +134,7 @@ def simulate(structures, trajectory_function,
         rate.sleep()
         t += 1. / freq
         struc_mgr.control_step(t, trajectory_function, speed, 
-                odom_publishers, tf_broadcaster)
+                odom_publishers, pos_publishers, tf_broadcaster)
     struc_mgr.make_plots()
 
 def setup_and_run(speed=1.0):
@@ -149,7 +143,7 @@ def setup_and_run(speed=1.0):
     radius = 2.5
     speed = 2.0
     trajs = [trajectory_function(0, speed, None, 
-                waypt_gen.line( [i,i,i],
+                waypt_gen.line( [i,i,0.0],
                     [radius*math.cos(math.pi / 4.0 * i),
                         radius*math.sin(math.pi / 4.0 * i),
                         i+1])) 

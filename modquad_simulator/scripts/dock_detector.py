@@ -45,6 +45,7 @@ def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
     :return: return a docking vector, which has size comb(n,2)
     """
     global docking
+    tolerance = rospy.get_param('~docking_tolerance', 0.01)#0.030)
 
     # Pairs of robots.
     pairs = list(combinations(range(n), 2))
