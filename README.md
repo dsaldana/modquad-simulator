@@ -24,7 +24,12 @@ takes off the robots and makes them move in a circle.
 ```
 rosrun demo-simulator demo_circle_multiple.py
 ```
-
+#### Demo after many changes
+The current runnable demo is 
+```
+rosrun modquad_simulator disperse_sim.py
+```
+It starts nine robots off in a line on the ground and has them move into a helical shape.
 
 
 ### Credits
