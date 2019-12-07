@@ -4,8 +4,6 @@
 * Install crazyflie_ros: https://github.com/whoenig/crazyflie_ros
 * install python packages `$ sudo pip install --upgrade numpy scipy transforms3d`
 
-
-
 ### Launching the simulator
 The simulator for five quadrotors is launched by
 ```
@@ -31,6 +29,15 @@ rosrun modquad_simulator disperse_sim.py
 ```
 It starts nine robots off in a line on the ground and has them move into a helical shape.
 
+#### Demo as of Dec. 2019
+After many more changes, here is the new set of commands to run:
+NOTE: This requires the mqscheduler package to run correctly
+```zsh
+roslaunch modquad_simulator simulation.launch
+rosrun modquad_simulator dock_detector.py
+rosrun split_structure_server.py
+rosrun modquad_simulator modquad_sim.py
+```
 
 ### Credits
 This is an open source project, most of the code is licensed under GPL v3.0.
@@ -38,5 +45,3 @@ This is an open source project, most of the code is licensed under GPL v3.0.
 This simulator and is developed and maintained by [David Saldaña](http://davidsaldana.co/) at University of Pennsylvania.
 
 Part of the dynamics simulation is an adaptation of the Quadrotor Simulator in Matlab by Daniel Mellinger at University of Pennsylvania.
- 
-
