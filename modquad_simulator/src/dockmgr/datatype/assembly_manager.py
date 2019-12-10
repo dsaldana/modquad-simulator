@@ -135,7 +135,7 @@ class AssemblyManager:
         self.time_for_assembly = start_time + self.reserve_time # seconds per layer
         self.trajectory_function = traj_func
         self.dockings = None
-        self.n = 5 #rospy.get_param("num_used_robots", 5)
+        self.n = 9 #rospy.get_param("num_used_robots", 5)
         self.pos_manager = WorldPosManager(self.n)
         self.pos_manager.subscribe()
         self.next_plan_z = True
@@ -386,45 +386,45 @@ class AssemblyManager:
         if smaller_struc == 2:
             if adj_dir == 'up':
                 oriented = y1w < y2w# and abs(x2 - x1) > 0.1
-                desire_x = x1w
-                desire_y = y1w + params.cage_width
+                desire_x = struc1.state_vector[0] #x1w
+                desire_y = y1w + params.cage_width - y2
             elif adj_dir == 'down':
                 oriented = y1w > y2w# and abs(x2 - x1) > 0.1
-                desire_x = x1w
-                desire_y = y1w - params.cage_width
+                desire_x = struc1.state_vector[0] #x1w
+                desire_y = y1w - params.cage_width - y2
             elif adj_dir == 'left':
                 oriented = x1w > x2w# and abs(y2 - y1) > 0.1
-                desire_x = x1w - params.cage_width
-                desire_y = y1w
+                desire_x = x1w - params.cage_width - x2
+                desire_y = struc1.state_vector[1] #y1w
             else: #adj_dir == 'right'
                 oriented = x1w < x2w# and abs(y2 - y1) > 0.1
-                desire_x = x1w + params.cage_width
-                desire_y = y1w
+                desire_x = x1w + params.cage_width - x2
+                desire_y = struc1.state_vector[1] #y1w
         else:
             if adj_dir == 'up':
                 oriented = y2w < y1w# and abs(x2 - x1) > 0.1
-                desire_x = x2w
-                desire_y = y2w + params.cage_width
+                desire_x = struc2.state_vector[0] #x2w
+                desire_y = y2w + params.cage_width - y1
             elif adj_dir == 'down':
                 oriented = y2w > y1w# and abs(x2 - x1) > 0.1
-                desire_x = x2w
-                desire_y = y2w - params.cage_width
+                desire_x = struc2.state_vector[0] #x2w
+                desire_y = y2w - params.cage_width - y1
             elif adj_dir == 'left':
                 oriented = x2w > x1w# and abs(y2 - y1) > 0.1
-                desire_x = x2w - params.cage_width
-                desire_y = y2w
+                desire_x = x2w - params.cage_width - x1
+                desire_y = struc2.state_vector[1] #y2w
             else: #adj_dir == 'right'
                 oriented = x2w < x1w# and abs(y2 - y1) > 0.1
-                desire_x = x2w + params.cage_width
-                desire_y = y2w
+                desire_x = x2w + params.cage_width - x1
+                desire_y = struc2.state_vector[1] #y2w
 
         # Get desired pos of center of mass of struc 2 
-        if smaller_struc == 2:
-            desire_x -= x2
-            desire_y -= y2
-        else:
-            desire_x -= x1
-            desire_y -= y1
+        #if smaller_struc == 2:
+        #    desire_x -= x1
+        #    desire_y -= y1
+        #else:
+        #    desire_x -= x2
+        #    desire_y -= y2
 
         desire_pos = np.array([desire_x, desire_y, zpos])
 

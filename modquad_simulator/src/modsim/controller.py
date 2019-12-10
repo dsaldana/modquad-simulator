@@ -46,12 +46,12 @@ def position_controller(structure, desired_state):
         zd  =  18.0
         zi  =   2.5
     elif num_mod > 2:
-        xyp =  45.0
+        xyp =  39.0
         xyd =  91.0
-        xyi =   0.1
+        xyi =   0.01
         zp  =  13.0
         zd  =  18.0
-        zi  =   2.5
+        zi  =   0.01#2.5
     elif num_mod == 2:
         xyp =  30.0
         xyd =  85.0
