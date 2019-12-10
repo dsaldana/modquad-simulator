@@ -149,8 +149,7 @@
         <arg name="color_b" default="0.0"/> 
     </include>
 
-
-    <param name="num_robots" value="8" type="int"/>
+    <param name="num_robots" value="5" type="int"/>
     <!--Robot Visualization-->
     <!--<node pkg="modquad_simulator" type="visualizer.py" name="visual"/>-->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find modquad_simulator)/rviz/four-robots.rviz" required="true"/>

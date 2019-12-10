@@ -88,7 +88,7 @@ def simulate(oldstruc, newstruc, reconf_map, t_step=0.01, speed=0.5, loc=[1., .0
 
     # Subscribe to /dockings so that you can tell when to combine structures
     rospy.Subscriber('/dockings', Int8MultiArray, docking_callback) 
-            
+
     # Odom publisher
     odom_publishers = {id_robot: 
         rospy.Publisher('/' + id_robot + odom_topic, Odometry, queue_size=0) 
@@ -223,7 +223,9 @@ def test_undock_along_path(mset1, wayptset, speed=0.5, test_id="", split_dim=0, 
 if __name__ == '__main__':
     print("Starting Undocking Simulation")
     test_undock_along_path(
-                       structure_gen.square(3), 
-                       #structure_gen.plus(3,3), 
+                       #structure_gen.square(3), 
+                       structure_gen.plus(3,3), 
+                       #structure_gen.rect(4,1), 
+                       #structure_gen.airplane(5,5,3),
                        waypt_gen.line([0,0,0], [10,15,1]), 
-                       speed=0.35, test_id="redisassembly")
+                       speed=0.25, test_id="redisassembly")

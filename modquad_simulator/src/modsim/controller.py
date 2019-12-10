@@ -46,19 +46,29 @@ def position_controller(structure, desired_state):
         zd  =  18.0
         zi  =   2.5
     elif num_mod > 2:
-        xyp =  39.0
+        xyp =  45.0
         xyd =  91.0
-        xyi =   0.01
+        xyi =   0.1
         zp  =  13.0
         zd  =  18.0
         zi  =   2.5
-    else: # Single module or pair
-        xyp = 67.0  # 17.0
-        xyd = 39.0  # 99.0
-        xyi =  0.01 #  0.1 
-        zp  =  9.0  #  9.0
-        zd  = 18.0  # 18.0
-        zi  =  0.01  #  2.5
+    elif num_mod == 2:
+        xyp =  30.0
+        xyd =  85.0
+        xyi =   0.01
+        zp  =  10.0
+        zd  =  18.0
+        zi  =   0.01
+    else: # Single module
+        #xyp =  9.0
+        #xyd = 18.0
+        #xyi =  0.01
+        xyp =  45.0   # 17.0
+        xyd =  50.0   # 99.0
+        xyi =   0.01  #  0.1 
+        zp  =   9.0   #  9.0
+        zd  =  18.0   # 18.0
+        zi  =   0.01  #  2.5
 
     kp1_u, kd1_u, ki1_u = xyp, xyd, xyi #10., 71., .0
     kp2_u, kd2_u, ki2_u = xyp, xyd, xyi #10., 71., .0

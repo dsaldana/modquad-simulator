@@ -17,6 +17,7 @@ from modsim.datatype.structure import Structure
 from modsim.datatype.structure_manager import StructureManager
 from modsim.util.undocking import gen_strucs_from_split, split_srv_input_format
 from modsim.trajectory import min_snap_trajectory
+from dockmgr.datatype.WorldPosManager import WorldPosManager
 
 # Scheduler modules
 from scheduler.assembly import assemble
@@ -134,7 +135,9 @@ class AssemblyManager:
         self.time_for_assembly = start_time + self.reserve_time # seconds per layer
         self.trajectory_function = traj_func
         self.dockings = None
-        self.n = rospy.get_param("num_used_robots", 9)
+        self.n = 5 #rospy.get_param("num_used_robots", 5)
+        self.pos_manager = WorldPosManager(self.n)
+        self.pos_manager.subscribe()
         self.next_plan_z = True
         self.assembly_layer = 1 # Used to find which assemblies to do next
         self.assemblies = {} # Mapping of assemblies to perform
@@ -194,7 +197,7 @@ class AssemblyManager:
             print("At t = {}, set up assemblies: {}".format(t, self.next_assemblies))
 
             # The z-locations at which the pairs will dock
-            zlayers = [i+0.5 for i in range(len(self.next_assemblies))]
+            zlayers = [i+1.0 for i in range(len(self.next_assemblies))]
             
             for i, mapping in enumerate(self.next_assemblies):
                 modid1, modid2, _ = extract_mods_from_string(struc_mgr, mapping[0], mapping[1][0], self.mat)
@@ -205,7 +208,7 @@ class AssemblyManager:
             #    rospy.set_param("print_pos_error", 1)
             return True
 
-        elif t >= 2 + self.next_time_to_plan:
+        elif t >= 15 + self.next_time_to_plan:
             #print("Finished ascending to the desired heights")
             for i, mapping in enumerate(self.next_assemblies):
                 modid1, modid2, adj_dir = extract_mods_from_string(struc_mgr, mapping[0], mapping[1][0], self.mat)
@@ -293,16 +296,42 @@ class AssemblyManager:
 
     def plan_next_xy_motion(self, t, struc_mgr, modid1, modid2, adj_dir, traj_func):
         global berth, offset
-        speed = 0.40 #rospy.get_param("structure_speed", 0.3)
+        speed = 0.25 #rospy.get_param("structure_speed", 0.3)
         struc1 = struc_mgr.find_struc_of_mod(modid1)
         struc2 = struc_mgr.find_struc_of_mod(modid2)
 
+        locations = self.pos_manager.get_locations()
+        if None in locations:
+            rospy.logwarn('Assembly manager xy motion planner does not have all locs: {}'\
+                    .format(locations))
+
+        # Temp change: larger struc is the one to move
+        # Having smaller structure be the one to move
+        smaller_struc = 2
+        if len(struc1.xx) < len(struc2.xx):
+            smaller_struc = 1
+            if adj_dir == 'down':
+                adj_dir = 'up'
+            elif adj_dir == 'up':
+                adj_dir = 'down'
+            elif adj_dir == 'right':
+                adj_dir = 'left'
+            else: # adj_dir == 'left'
+                adj_dir = 'right'
+           
+        print("Smaller structure is struc{}".format(smaller_struc))
+
         # Start new trajectory where the structures currently are
-        #waypts1 = [np.copy(struc1.state_vector[:3])]
-        waypts2 = [np.copy(struc2.state_vector[:3])]
+        if smaller_struc == 2:
+            waypts2 = [np.copy(struc2.state_vector[:3])]
+        else:
+            waypts1 = [np.copy(struc1.state_vector[:3])]
 
         # Want to be on same level as struc1, even if it moved a bit
-        zpos = struc1.traj_vars.waypts[-1,:][2]
+        if smaller_struc == 2:
+            zpos = struc1.traj_vars.waypts[-1,:][2]
+        else:
+            zpos = struc2.traj_vars.waypts[-1,:][2]
 
         # We need to check that the structures are oriented relative 
         #  to each other correctly, and if not move them
@@ -312,16 +341,35 @@ class AssemblyManager:
         y1  = struc1.yy[i1]
         x2  = struc2.xx[i2]
         y2  = struc2.yy[i2]
-        s1x = struc1.traj_vars.waypts[-1,:][0]
-        s1y = struc1.traj_vars.waypts[-1,:][1]
-        s2x = struc2.state_vector[0]
-        s2y = struc2.state_vector[1]
+        if smaller_struc == 2:
+            s2x = struc2.state_vector[0]
+            s2y = struc2.state_vector[1]
+            s1x = struc1.state_vector[0] #struc1.traj_vars.waypts[-1,:][0]
+            s1y = struc1.state_vector[1] #struc1.traj_vars.waypts[-1,:][1]
+            #s1x = struc1.traj_vars.waypts[-1,:][0]
+            #s1y = struc1.traj_vars.waypts[-1,:][1]
+        else:
+            s1x = struc1.state_vector[0]
+            s1y = struc1.state_vector[1]
+            s2x = struc2.state_vector[0] #struc2.traj_vars.waypts[-1,:][0]
+            s2y = struc2.state_vector[1] #struc2.traj_vars.waypts[-1,:][1]
+            #s2x = struc2.traj_vars.waypts[-1,:][0]
+            #s2y = struc2.traj_vars.waypts[-1,:][1]
+            #s1x = struc1.state_vector[0]
+            #s1y = struc1.state_vector[1]
 
         # World frame pos of modid1
-        x1w = x1 + s1x
-        y1w = y1 + s1y
+        print("Locations: ")
+        print(locations)
+        print(modid1)
+        print(modid2)
+        x1w = locations[modid1-1][0] #x1 + s1x
+        y1w = locations[modid1-1][1] #y1 + s1y
+        x2w = locations[modid2-1][0] #x2 + s2x
+        y2w = locations[modid2-1][1] #y2 + s2y
 
         # Where struc2 should end up relative to struc1
+        # or vice versa, depending on which struc is smaller
         desire_x = 0.0 
         desire_y = 0.0
 
@@ -329,35 +377,68 @@ class AssemblyManager:
         oriented = False
         print("\n=========================================================\n")
         print("Trying to connect {}-{} in dir {}".format(modid1, modid2, adj_dir))
+        print("Struc Internal Pos of Mod {}: ({}, {})".format(modid1, x1, y1))
+        print("Struc Internal Pos of Mod {}: ({}, {})".format(modid2, x2, y2))
+        print("World Pos of Mod {}: ({}, {})".format(modid1, x1w, y1w))
+        print("World Pos of Mod {}: ({}, {})".format(modid2, x2w, y2w))
 
         # Compute whether oriented and what desired x,y for struc2 are
-        if adj_dir == 'up':
-            oriented = y1 < y2# and abs(x2 - x1) > 0.1
-            desire_x = x1w
-            desire_y = y1w + params.cage_width
-        elif adj_dir == 'down':
-            oriented = y1 > y2# and abs(x2 - x1) > 0.1
-            desire_x = x1w
-            desire_y = y1w - params.cage_width
-        elif adj_dir == 'left':
-            oriented = x1 > x2# and abs(y2 - y1) > 0.1
-            desire_x = x1w - params.cage_width
-            desire_y = y1w
-        else: #adj_dir == 'right'
-            oriented = x1 < x2# and abs(y2 - y1) > 0.1
-            desire_x = x1w + params.cage_width
-            desire_y = y1w
+        if smaller_struc == 2:
+            if adj_dir == 'up':
+                oriented = y1w < y2w# and abs(x2 - x1) > 0.1
+                desire_x = x1w
+                desire_y = y1w + params.cage_width
+            elif adj_dir == 'down':
+                oriented = y1w > y2w# and abs(x2 - x1) > 0.1
+                desire_x = x1w
+                desire_y = y1w - params.cage_width
+            elif adj_dir == 'left':
+                oriented = x1w > x2w# and abs(y2 - y1) > 0.1
+                desire_x = x1w - params.cage_width
+                desire_y = y1w
+            else: #adj_dir == 'right'
+                oriented = x1w < x2w# and abs(y2 - y1) > 0.1
+                desire_x = x1w + params.cage_width
+                desire_y = y1w
+        else:
+            if adj_dir == 'up':
+                oriented = y2w < y1w# and abs(x2 - x1) > 0.1
+                desire_x = x2w
+                desire_y = y2w + params.cage_width
+            elif adj_dir == 'down':
+                oriented = y2w > y1w# and abs(x2 - x1) > 0.1
+                desire_x = x2w
+                desire_y = y2w - params.cage_width
+            elif adj_dir == 'left':
+                oriented = x2w > x1w# and abs(y2 - y1) > 0.1
+                desire_x = x2w - params.cage_width
+                desire_y = y2w
+            else: #adj_dir == 'right'
+                oriented = x2w < x1w# and abs(y2 - y1) > 0.1
+                desire_x = x2w + params.cage_width
+                desire_y = y2w
 
         # Get desired pos of center of mass of struc 2 
-        desire_x -= x2
-        desire_y -= y2
+        if smaller_struc == 2:
+            desire_x -= x2
+            desire_y -= y2
+        else:
+            desire_x -= x1
+            desire_y -= y1
+
         desire_pos = np.array([desire_x, desire_y, zpos])
 
         # Current state
-        curstate = struc2.state_vector[:3]
+        if smaller_struc == 2:
+            curstate = struc2.state_vector[:3]
+        else:
+            curstate = struc1.state_vector[:3]
 
         # Center about the mod pos to attach to
-        center = [s1x, s1y, zpos]
+        if smaller_struc == 2:
+            center = [s1x, s1y, zpos]
+        else:
+            center = [s2x, s2y, zpos]
 
         # Generate the four possible approach points
         up_pt = [desire_x, desire_y + berth, zpos]
@@ -391,7 +472,11 @@ class AssemblyManager:
         closest_circle_pt_idx = np.argmin(dist_to_approach_pt)
         print("Argmin for closest approach point: {}".format(closest_circle_pt_idx))
         closest_circle_pt = approaches[closest_circle_pt_idx, :]
-        waypts2.append(closest_circle_pt.tolist())
+
+        if smaller_struc == 2:
+            waypts2.append(closest_circle_pt.tolist())
+        else:
+            waypts1.append(closest_circle_pt.tolist())
 
         # Next, figure out relative direction to move
         # If the approach point is on opposite side, use intermediate waypt
@@ -403,13 +488,21 @@ class AssemblyManager:
         if new_dist_to_approach > 1.5 * berth:
             # The approach is on the opposite side
             print("Approach from opposite side")
-            waypts2.append(
-                    np.roll(approaches, 1, axis=0)[closest_circle_pt_idx, :].tolist())
-            waypts2.append(approach_pt)
+            if smaller_struc == 2:
+                waypts2.append(
+                        np.roll(approaches, 1, axis=0)[closest_circle_pt_idx, :].tolist())
+                waypts2.append(approach_pt)
+            else:
+                waypts1.append(
+                        np.roll(approaches, 1, axis=0)[closest_circle_pt_idx, :].tolist())
+                waypts1.append(approach_pt)
         elif new_dist_to_approach > berth * 0.25:
             print("Migrate to approach point")
             # The approach is not from here, but not on opposite side either
-            waypts2.append(approach_pt)
+            if smaller_struc == 2:
+                waypts2.append(approach_pt)
+            else:
+                waypts1.append(approach_pt)
         else: 
             print("Already at approach pt")
         # else: closest_circle_pt is the approach_pt
@@ -438,43 +531,82 @@ class AssemblyManager:
         if adj_dir == 'up':
             #waypts2.append([desire_x, desire_y + berth    , zpos])
             #waypts2.append([desire_x, desire_y + berth*0.75, zpos])
-            waypts2.append([desire_x, desire_y + berth*0.55, zpos])
-            waypts2.append([desire_x, desire_y + berth*0.35, zpos])
+            if smaller_struc == 2:
+                waypts2.append([desire_x, desire_y + berth*0.55, zpos])
+                waypts2.append([desire_x, desire_y + berth*0.35, zpos])
+            else:
+                waypts1.append([desire_x, desire_y + berth*0.55, zpos])
+                waypts1.append([desire_x, desire_y + berth*0.35, zpos])
         elif adj_dir == 'down':
             #waypts2.append([desire_x, desire_y - berth    , zpos])
             #waypts2.append([desire_x, desire_y - berth*0.75, zpos])
-            waypts2.append([desire_x, desire_y - berth*0.55, zpos])
-            waypts2.append([desire_x, desire_y - berth*0.35, zpos])
+            if smaller_struc == 2:
+                waypts2.append([desire_x, desire_y - berth*0.55, zpos])
+                waypts2.append([desire_x, desire_y - berth*0.35, zpos])
+            else:
+                waypts1.append([desire_x, desire_y - berth*0.55, zpos])
+                waypts1.append([desire_x, desire_y - berth*0.35, zpos])
         elif adj_dir == 'left':
             #waypts2.append([desire_x - berth    , desire_y, zpos])
             #waypts2.append([desire_x - berth*0.75, desire_y, zpos])
-            waypts2.append([desire_x - berth*0.55, desire_y, zpos])
-            waypts2.append([desire_x - berth*0.35, desire_y, zpos])
+            if smaller_struc == 2:
+                waypts2.append([desire_x - berth*0.55, desire_y, zpos])
+                waypts2.append([desire_x - berth*0.35, desire_y, zpos])
+            else:
+                waypts1.append([desire_x - berth*0.55, desire_y, zpos])
+                waypts1.append([desire_x - berth*0.35, desire_y, zpos])
         else:
             #waypts2.append([desire_x + berth    , desire_y, zpos])
             #waypts2.append([desire_x + berth*0.75, desire_y, zpos])
-            waypts2.append([desire_x + berth*0.50, desire_y, zpos])
-            waypts2.append([desire_x + berth*0.35, desire_y, zpos])
+            if smaller_struc == 2:
+                waypts2.append([desire_x + berth*0.50, desire_y, zpos])
+                waypts2.append([desire_x + berth*0.35, desire_y, zpos])
+            else:
+                waypts1.append([desire_x + berth*0.50, desire_y, zpos])
+                waypts1.append([desire_x + berth*0.35, desire_y, zpos])
 
         # Finally, we want them to come together and attach
         # struc1 stays stationary, struc 2 moves in
-        waypts2.append(desire_pos)
+        if smaller_struc == 2:
+            waypts2.append(desire_pos)
+        else:
+            waypts1.append(desire_pos)
 
         print("struc1 pos: {}".format(struc1.state_vector[:3]))
         print('-------------')
         print("struc2 pos: {}".format(struc2.state_vector[:3]))
         print('-------------')
-        print("struc2 desire pos: {}".format(desire_pos))
-        print('-------------')
-        print("2nd set of waypts: \n{}".format(np.array(waypts2)))
+        if smaller_struc == 2:
+            print("struc2 desire pos: {}".format(desire_pos))
+            print('-------------')
+            print("2nd set of waypts: \n{}".format(np.array(waypts2)))
+        else:
+            print("struc1 desire pos: {}".format(desire_pos))
+            print('-------------')
+            print("1st set of waypts: \n{}".format(np.array(waypts1)))
 
-        #struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
-        struc2.traj_vars = traj_func(t, speed, None, np.array(waypts2))
-        print('-------------')
-        print(struc2.traj_vars.times)
-        print("{}".format(struc2.traj_vars.waypts))
+        if smaller_struc == 2:
+            struc2.traj_vars = traj_func(t, speed, None, np.array(waypts2))
+            print('-------------')
+            print(struc2.traj_vars.times)
+            print("{}".format(struc2.traj_vars.waypts))
+            print('struc 1 time/path')
+            print(struc1.traj_vars.times)
+            print("{}".format(struc1.traj_vars.waypts))
+            print('struc 2 time/path')
+            print(struc2.traj_vars.times)
+            print("{}".format(struc2.traj_vars.waypts))
+        else:
+            struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
+            print('-------------')
+            print('struc 1 time/path')
+            print(struc1.traj_vars.times)
+            print("{}".format(struc1.traj_vars.waypts))
+            print('struc 2 time/path')
+            print(struc2.traj_vars.times)
+            print("{}".format(struc2.traj_vars.waypts))
 
-        next_time_to_plan = max([struc1.traj_vars.times[-1], struc2.traj_vars.times[-1]])
+        next_time_to_plan = 15+max([struc1.traj_vars.times[-1], struc2.traj_vars.times[-1]])
         if next_time_to_plan > self.next_time_to_plan:
             self.next_time_to_plan = next_time_to_plan
         print("Planned xy, t = {}, projected finish t = {}".format(t, self.next_time_to_plan))
@@ -502,7 +634,7 @@ class AssemblyManager:
         struc1.traj_vars = traj_func(t, speed, None, np.array(waypts1))
         struc2.traj_vars = traj_func(t, speed, None, np.array(waypts2))
 
-        next_time_to_plan = max([struc1.traj_vars.times[-1], struc2.traj_vars.times[-1]])
+        next_time_to_plan = 15+max([struc1.traj_vars.times[-1], struc2.traj_vars.times[-1]])
         if next_time_to_plan > self.next_time_to_plan:
             self.next_time_to_plan = next_time_to_plan
 
@@ -541,8 +673,8 @@ class AssemblyManager:
                     continue
                 else:
                     self.docked_pairs.append(pairs[x])
-                print('-----')
-                print("new docking of strucs with mods: {}".format(pairs[x]))
+                #print('-----')
+                #print("new docking of strucs with mods: {}".format(pairs[x]))
                 # Find containing structures of these modules
                 p1 = struc_mgr.find_struc_of_mod(pairs[x][0])
                 p2 = struc_mgr.find_struc_of_mod(pairs[x][1])

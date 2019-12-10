@@ -45,10 +45,10 @@ def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
     :return: return a docking vector, which has size comb(n,2)
     """
     global docking
-    tolerance = rospy.get_param('~docking_tolerance', 0.01)#0.030)
+    tolerance = rospy.get_param('~docking_tolerance', 0.005)#0.01)#0.030)
 
     # Pairs of robots.
-    pairs = list(combinations(range(n), 2))
+    pairs = sorted(list(combinations(range(n), 2)))
 
     # Check every pair
     for k, (i, j) in enumerate(pairs):
@@ -62,11 +62,6 @@ def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
         z_diff = abs(x[j][2] - x[i][2])
 
         if dist < docking_d and z_diff < min_z_dif:
-            print('------------')
-            print("valid docking with params:\n\tdist = {}, tolerance = {}, zdiff = {}, minzdiff = {}".format(
-                dist, docking_d, z_diff, min_z_dif))
-            #print(x)
-            print(docking)
             dx, dy = diff[:2]
             angle = degrees(atan2(dy, dx))
 
@@ -78,6 +73,13 @@ def compute_docking_array(x, n, docking_d, min_z_dif=0.005):
                 docking[k] = 4
             else:  # down 3
                 docking[k] = 3
+
+            print('------------')
+            print('Pairs: {}'.format(pairs))
+            print("valid docking index pair {} with params:\n\tdist = {}, tolerance = {}, zdiff = {}, minzdiff = {}".format(
+                (i, j), dist, docking_d, z_diff, min_z_dif))
+            print(x)
+            print(docking)
 
     return docking
 
@@ -141,7 +143,12 @@ def detect_dockings():
 
     # Use new parameters
     rospy.set_param('reset_docking', 0)
-    n = rospy.get_param('num_used_robots', 9)
+
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # FIXME - Currently need to change this manually#!
+    n = 5 #rospy.get_param('num_used_robots', 9) # !!!!!!
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     pos_manager = WorldPosManager(n)
     docking = [0 for _ in range(n * (n - 1) / 2)]
 
@@ -167,7 +174,7 @@ def detect_dockings():
             continue
 
         # Create the package based on odometry
-        docking_array = compute_docking_array(np.array(locations), n, docking_d,min_z_diff)
+        docking_array = compute_docking_array(np.array(locations), n, docking_d, min_z_diff)
         #docking_array = overwrite_manual_docking(docking_array)
 
         # Publish

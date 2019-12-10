@@ -38,6 +38,9 @@ rosrun modquad_simulator dock_detector.py
 rosrun split_structure_server.py
 rosrun modquad_simulator modquad_sim.py
 ```
+Note: These values must be manually edited currently.
+* assembly_manager.py: self.n = number of robots in simulation
+* dock_detector.py: n = number of robots in simulation
 
 ### Credits
 This is an open source project, most of the code is licensed under GPL v3.0.

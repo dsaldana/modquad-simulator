@@ -190,6 +190,8 @@ class StructureManager:
     def find_struc_of_mod(self, mod_id):
         mod_id = 'modquad{:02d}'.format(mod_id)
         struc = [s for s in self.strucs if mod_id in s.ids] # list of len 1
+        #print(mod_id)
+        #print(struc)
         return struc[0] # Return structure obj containing the module
 
     def join_strucs(self, struc1, struc2, ids_pair, direction, traj_func, t):
@@ -199,7 +201,24 @@ class StructureManager:
         :param ids_pair: tuple of non-stringified mod ids specifying the join
         """
         dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
-        print("Joining the pair {}, ({} and {}) in adj dir {}".format(ids_pair, struc1.ids, struc2.ids, dirs[direction]))
+        print("Joining the pair {}, ({} and {}) in adj dir {}".format(
+            ids_pair, struc1.ids, struc2.ids, dirs[direction]))
+        #mat1 = convert_struc_to_mat(struc1.ids, struc1.xx, struc1.yy)
+        #mat2 = convert_struc_to_mat(struc2.ids, struc2.xx, struc2.yy)
+
+        #num_rows_1 = mat1.shape[0]
+        #num_cols_1 = mat1.shape[1]
+        #num_rows_2 = mat2.shape[0]
+        #num_cols_2 = mat2.shape[2]
+
+        #max_num_rows = num_rows_1
+        #max_num_cols = num_cols_1
+
+        # Define new matrix based on the desired adjacency
+        #if direction == 1 or direction == 3:
+        #    
+        #else:
+
         i = [j for j,v in enumerate(struc1.ids) 
                 if v == 'modquad{:02d}'.format(ids_pair[0])]
         i = i[0] # Assuming that Structure is properly created, all ids are unique
@@ -214,19 +233,28 @@ class StructureManager:
         # Define all struc2 mods relative to x, y
         xx2 = np.copy(struc2.xx)
         yy2 = np.copy(struc2.yy)
+        print("Struc1 State: {}".format(struc1.state_vector[:3]))
+        print("Struc2 State: {}".format(struc2.state_vector[:3]))
+        print("mods = {}".format(struc1.ids))
+        print("World Pos X: {}".format(struc1.xx + struc1.state_vector[0]))
+        print("World Pos Y: {}".format(struc1.yy + struc1.state_vector[1]))
+        print("mods = {}".format(struc2.ids))
+        print("World Pos X: {}".format(struc2.xx + struc2.state_vector[0]))
+        print("World Pos Y: {}".format(struc2.yy + struc2.state_vector[1]))
         print("x1 = {}".format(x1))
         print("y1 = {}".format(y1))
+        print("mods = {}".format(struc1.ids))
         print("old xx1 = {}".format(struc1.xx))
         print("old yy1 = {}".format(struc1.yy))
         print('-')
+        print("mods = {}".format(struc2.ids))
         print("old xx2 = {}".format(xx2))
         print("old yy2 = {}".format(yy2))
 
-        xdiff = x2 - x1
-        ydiff = y2 - y1
+        xdiff = x1 - x2
+        ydiff = y1 - y2
         print('xdiff = {}'.format(xdiff))
         print('ydiff = {}'.format(ydiff))
-        
 
         # Shift the struc2 coordinates to match the center of mass of struc1
         #       dirs = {1: 'right', 2: 'up', 3: 'left', 4: 'down'}
