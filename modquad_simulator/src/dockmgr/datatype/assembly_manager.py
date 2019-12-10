@@ -135,7 +135,7 @@ class AssemblyManager:
         self.time_for_assembly = start_time + self.reserve_time # seconds per layer
         self.trajectory_function = traj_func
         self.dockings = None
-        self.n = 9 #rospy.get_param("num_used_robots", 5)
+        self.n = 5 #rospy.get_param("num_used_robots", 5)
         self.pos_manager = WorldPosManager(self.n)
         self.pos_manager.subscribe()
         self.next_plan_z = True
@@ -382,41 +382,84 @@ class AssemblyManager:
         print("World Pos of Mod {}: ({}, {})".format(modid1, x1w, y1w))
         print("World Pos of Mod {}: ({}, {})".format(modid2, x2w, y2w))
 
+        # Find the world pos of mods of each struc
+        struc1_ids = [int(x[7:])-1 for x in struc1.ids]
+        struc2_ids = [int(x[7:])-1 for x in struc2.ids]
+        struc1_wpos_x = [locations[i][0] for i in struc1_ids]
+        struc2_wpos_x = [locations[i][0] for i in struc2_ids]
+        struc1_wpos_y = [locations[i][1] for i in struc1_ids]
+        struc2_wpos_y = [locations[i][1] for i in struc2_ids]
+        struc1_wpos_z = [locations[i][2] for i in struc1_ids]
+        struc2_wpos_z = [locations[i][2] for i in struc2_ids]
+
+        struc1_cmass = [np.mean(struc1_wpos_x), 
+                        np.mean(struc1_wpos_y), 
+                        locations[modid1-1][2]]
+        struc2_cmass = [np.mean(struc2_wpos_x), 
+                        np.mean(struc2_wpos_y), 
+                        locations[modid2-1][2]]
+
+        print("Struc 1 Mod X Pos: {}".format(struc1_wpos_x))
+        print("Struc 1 Mod Y Pos: {}".format(struc1_wpos_y))
+        print("Struc 1 CMass    : {}".format(struc1_cmass))
+        print("Struc 2 Mod X Pos: {}".format(struc2_wpos_x))
+        print("Struc 2 Mod Y Pos: {}".format(struc2_wpos_y))
+        print("Struc 2 CMass    : {}".format(struc2_cmass))
+        x1diff = x1w - struc1_wpos_x[0]
+        y1diff = y1w - struc1_wpos_y[0]
+        x2diff = x2w - struc2_wpos_x[0]
+        y2diff = y2w - struc2_wpos_y[0]
         # Compute whether oriented and what desired x,y for struc2 are
         if smaller_struc == 2:
             if adj_dir == 'up':
                 oriented = y1w < y2w# and abs(x2 - x1) > 0.1
-                desire_x = struc1.state_vector[0] #x1w
+                desire_x = x1w - x2diff
+                    #struc1_wpos_x[0] - (x2w - struc2_wpos_x[0])
+                    #np.mean(struc1_wpos_x) #struc1.state_vector[0] #x1w
                 desire_y = y1w + params.cage_width - y2
             elif adj_dir == 'down':
                 oriented = y1w > y2w# and abs(x2 - x1) > 0.1
-                desire_x = struc1.state_vector[0] #x1w
+                desire_x = x1w - x2diff
+                    #struc1_wpos_x[0] - (x2w - struc2_wpos_x[0])
+                    #np.mean(struc1_wpos_x) #struc1.state_vector[0] #x1w
                 desire_y = y1w - params.cage_width - y2
             elif adj_dir == 'left':
                 oriented = x1w > x2w# and abs(y2 - y1) > 0.1
                 desire_x = x1w - params.cage_width - x2
-                desire_y = struc1.state_vector[1] #y1w
+                desire_y = y1w - y2diff
+                    #struc1_wpos_y[0] - (y2w - struc2_wpos_y[0])
+                    #np.mean(struc1_wpos_y) #struc1.state_vector[1] #y1w
             else: #adj_dir == 'right'
                 oriented = x1w < x2w# and abs(y2 - y1) > 0.1
                 desire_x = x1w + params.cage_width - x2
-                desire_y = struc1.state_vector[1] #y1w
+                desire_y = y1w - y2diff
+                    #struc1_wpos_y[0] - (y2w - struc2_wpos_y[0])
+                    #np.mean(struc1_wpos_y) #struc1.state_vector[1] #y1w
         else:
             if adj_dir == 'up':
                 oriented = y2w < y1w# and abs(x2 - x1) > 0.1
-                desire_x = struc2.state_vector[0] #x2w
+                desire_x = x2w - x1diff
+                    #struc2_wpos_x[0] - (x1w - struc1_wpos_x[0])
+                    #np.mean(struc2_wpos_x) #struc2.state_vector[0] #x2w
                 desire_y = y2w + params.cage_width - y1
             elif adj_dir == 'down':
                 oriented = y2w > y1w# and abs(x2 - x1) > 0.1
-                desire_x = struc2.state_vector[0] #x2w
+                desire_x = x2w - x1diff
+                    #struc2_wpos_x[0] - (x1w - struc1_wpos_x[0])
+                    #np.mean(struc2_wpos_x) #struc2.state_vector[0] #x2w
                 desire_y = y2w - params.cage_width - y1
             elif adj_dir == 'left':
                 oriented = x2w > x1w# and abs(y2 - y1) > 0.1
                 desire_x = x2w - params.cage_width - x1
-                desire_y = struc2.state_vector[1] #y2w
+                desire_y = y2w - y1diff
+                    #struc2_wpos_y[0] - (y1w - struc1_wpos_y[0])
+                    #np.mean(struc2_wpos_y) #struc2.state_vector[1] #y2w
             else: #adj_dir == 'right'
                 oriented = x2w < x1w# and abs(y2 - y1) > 0.1
                 desire_x = x2w + params.cage_width - x1
-                desire_y = struc2.state_vector[1] #y2w
+                desire_y = y2w - y1diff
+                    #struc2_wpos_y[0] - (y1w - struc1_wpos_y[0])
+                    #np.mean(struc2_wpos_y) #struc2.state_vector[1] #y2w
 
         # Get desired pos of center of mass of struc 2 
         #if smaller_struc == 2:
