@@ -50,34 +50,3 @@ def state_derivative(state_vector, F, M, structure):
 
     return sdot
 
-
-# def control_output(s, desired_state, control_fun):
-#     """
-#     Computes the control output for a given state.
-#
-#     :param t: time
-#     :param s: 13 x 1, state vector = [x, y, z, xd, yd, zd, qw, qx, qy, qz, p, q, r]
-#     :param control_fun: function handle of your controller
-#     :param trajhandle: function handle of your trajectory generator
-#     :return: sdot: 13 x 1, derivative of state vector s
-#     """
-#     [des_pos, des_vel, des_acc, des_yaw, des_yawdot] = desired_state
-#
-#     # convert state to quad stuct for control
-#     quadrotor = state_to_quadrotor(s)
-#
-#     # The desired_state is set in the trajectory generator
-#     quadrotor.pos_des = des_pos
-#     quadrotor.vel_des = des_vel
-#     quadrotor.acc_des = des_acc
-#     quadrotor.yaw_des = des_yaw
-#     quadrotor.yawdot_des = des_yawdot
-#
-#     # get control outputs
-#     # [F, M, trpy, drpy] = control_fun(quadrotor)
-#     #
-#     # return F, M
-#
-#     trpy = control_fun(quadrotor)
-#
-#     return trpy

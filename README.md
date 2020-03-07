@@ -2,14 +2,15 @@
 
 ### Requirements
 * Install crazyflie_ros: https://github.com/whoenig/crazyflie_ros
-* install python packages `$ sudo pip install --upgrade numpy scipy transforms3d`
+* install python packages 
+``` sudo pip install --upgrade numpy scipy transforms3d```
 
 
 
 ### Launching the simulator
 The simulator for five quadrotors is launched by
 ```
-$ roslaunch modquad_simulator simulation.launch
+roslaunch modquad_simulator simulation.launch
 ```
 This launch file creates a module `modquad_sim` for each robot. This module simulates the dynamics of a quadrotor and displays its pose in RViz.
 The launch file `simulation.launch` can be easily modified to change the number of quadrotors, their initial location and their color. Note that every new robot needs to be added in RViz too.
@@ -29,8 +30,6 @@ rosrun demo-simulator demo_circle_multiple.py
 
 ### Credits
 This is an open source project, most of the code is licensed under GPL v3.0.
-
-This simulator and is developed and maintained by [David Saldaña](http://davidsaldana.co/) at University of Pennsylvania.
 
 Part of the dynamics simulation is an adaptation of the Quadrotor Simulator in Matlab by Daniel Mellinger at University of Pennsylvania.
  

@@ -75,7 +75,7 @@ def simulate():
     init_x = rospy.get_param('~init_x', 1.)
     init_y = rospy.get_param('~init_y', 0.)
     init_z = rospy.get_param('~init_z', 0.)
-    demo_trajectory = rospy.get_param('~demo_trajectory', True)
+    demo_trajectory = rospy.get_param('~demo_trajectory', False)
 
     odom_topic = rospy.get_param('~odom_topic', '/odom')  # '/odom2'
     # cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')  # '/cmd_vel2'
@@ -92,7 +92,7 @@ def simulate():
                            yy=[0, 0, params.cage_width, params.cage_width],
                            motor_failure=[(1, 0)])
     structure1 = Structure(ids=[robot_id], xx=[0], yy=[0])
-    structure = structure4fail
+    structure = structure1
 
     # Subscribe to control input
     rospy.Subscriber('/' + robot_id + '/cmd_vel', Twist, control_input_listener)
