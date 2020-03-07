@@ -1,6 +1,7 @@
 <launch>
 
     <arg name="model"/>
+    <arg name="demo_trajectory" default="false"/>
     <arg name="config_path"/>
     <arg name="uri" default="radio://0/100/2M/0xE7E7E7E7E7"/>
     <arg name="cmd_frequency" default="100"/>
@@ -18,6 +19,7 @@
         <!-- Simulator -->
        <node pkg="modquad_simulator" type="modquad_sim.py" name="modquad_sim" output="screen">
            <param name="~robot_id" value="$(arg model)"/>
+           <param name="~demo_trajectory" value="$(arg demo_trajectory)"/>
            <param name="~init_x" value="$(arg init_x)" type="double"/>
            <param name="~init_y" value="$(arg init_y)" type="double"/>
        </node>
