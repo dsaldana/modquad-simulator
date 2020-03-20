@@ -7,31 +7,31 @@
 
 
 
-### Launching the simulator with a single quadrotor
+### Launching the simulator
 The simulator for five quadrotors is launched by
 ```
-roslaunch modquad_simulator simulation.launch
+$ roslaunch modquad_simulator simulation.launch
 ```
-This launch file creates a module `modquad_sim` for each robot. This module simulates the dynamics of a quadrotor and displays its pose in RViz.
-The argument `demo_trajectory` in the call to _modquad.launch_ file is set to true. So a circular trajectory is sent to the position controller.
+Each robot simulates the dynamics of a quadrotor by runing the `modquad_sim` node and its pose is displayed in RViz.
+The launch file `simulation.launch` can be easily modified to change the number of quadrotors, their initial location and their color.
 
-As well as the actual crazyflie robot, the simulated quadrotor receives two inputs:
+As well as the actual crazyflie robot, the simulator receives two inputs:
 * Attitude command: the topic _cmd_vel_ receives the desired thrust, roll, pitch and yaw inputs. It follows the same format as the `crazyflie_ros `package.
-* Goal: using the `crazyflie_controller` package, the simulator also receives goals through the _goal_ topic. This package also includes the services for taking off and landing (see the documentation of the package). 
+* Goal: using the `crazyflie_controller`, the simulator also receives goals trhough the _goal_ topic and takeoff commands through the _takeoff_ service. 
 
-
-### Launching the simulator with multiple quadrotors
-
-The launch file `simulation.launch` can be easily modified to change the number of quadrotors, their initial location and their color. Note that every new robot needs to be added in RViz too.
-```
-roslaunch modquad_simulator simulation.launch
-```
-
-Once the simulator is running, we can send desired goals to the robots.  The following script runs a demo that 
-takes off the robots and makes them move in a circle.
+### Demo
+Once the simulator is running, we can send desired goals to the robots.  The following command runs a demo script that 
+takes off the robots and makes them move in circle.
 ```
 rosrun demo-simulator demo_circle_multiple.py
 ```
+
+
+
+
+
+
+
 
 
 
