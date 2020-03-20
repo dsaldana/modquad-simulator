@@ -1,4 +1,3 @@
-import numpy as np
 
 class QuadState(object):
     def __init__(self, pos=[0., 0., 0.], vel=[0., 0., 0.], euler=[0., 0., 0.], omega=[0., 0., 0.]):

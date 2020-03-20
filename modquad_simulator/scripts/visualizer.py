@@ -5,7 +5,7 @@ import rospy
 from nav_msgs.msg import Odometry
 
 from modsim.plot.drawer_vispy import Drawer
-from modsim.util.state import stateToQd
+from modsim.util.state import state_to_quadrotor
 
 
 def visualize():
@@ -59,7 +59,7 @@ def visualize():
     while not rospy.is_shutdown():
         rate.sleep()
 
-        quads = [stateToQd(s) for s in states.values()]
+        quads = [state_to_quadrotor(s) for s in states.values()]
 
         # wait for all robots
         if len(quads) < n:

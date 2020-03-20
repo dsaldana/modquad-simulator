@@ -27,13 +27,12 @@ class Drawer(object):
             for _ in self.quads:
                 self.graphic_robots.append(GraphicQuad(view))
 
-
                 # Trtajectory
                 Plot3D = scene.visuals.create_visual_node(visualsplot.LinePlotVisual)
                 pos = np.c_[[0], [0], [0]]
                 gtraj = Plot3D(pos, width=2.0, color=(1, 0, 0, .9),
-                                     face_color=(0., 0., 0, 0.),
-                                     parent=view.scene)
+                               face_color=(0., 0., 0, 0.),
+                               parent=view.scene)
                 self.graphic_trajectories.append(gtraj)
 
             # Initial drawing for robots
@@ -45,6 +44,7 @@ class Drawer(object):
             view.camera = cam
 
             view.camera = 'arcball'  # or try 'turntable'
+
             def update(ev):
                 # Draw robots
                 for i, q in enumerate(self.quads):
@@ -67,6 +67,5 @@ class Drawer(object):
 
         if trajectories is not None:
             self.trajectories = trajectories
-
 
 # Drawer()
